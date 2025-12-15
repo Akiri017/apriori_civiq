@@ -1,0 +1,18 @@
+# Civiq Default Configuration
+# This file contains hyperparameters and simulation settings
+
+simulation:
+  duration: 3600  # seconds
+  step_length: 1.0  # seconds
+  
+network:
+  map: "scenarios/bgc_full/"
+  
+training:
+  episodes: 1000
+  batch_size: 32
+  learning_rate: 0.001
+  
+qmix:
+  hidden_dim: 64
+  mixing_embed_dim: 32
