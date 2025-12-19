@@ -1,0 +1,8 @@
+torch
+numpy
+matplotlib
+sumolib
+traci
+pyyaml
+tensorboard
+pytest
