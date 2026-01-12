@@ -12,8 +12,9 @@
     </input>
 
     <output>
-        <tripinfo-output value="tripinfos.xml"/>
-        <statistic-output value="stats.xml"/>
+        <tripinfo-output value="data_selfish_tripinfo.xml"/>
+        <summary-output value="data_selfish_summary.xml"/>
+        <statistic-output value="data_selfish_stats.xml"/>
     </output>
 
     <processing>
