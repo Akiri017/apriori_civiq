@@ -24,8 +24,8 @@
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
     <vType id="veh_passenger" 
            vClass="passenger" 
-           lcStrategic="50.0" 
-           lcCooperative="0.0" 
+           lcStrategic="10.0" 
+           lcCooperative="1.0" 
            lcLookaheadLeft="3.0" 
            jmIgnoreKeepClearTime="1.0"/>
 
