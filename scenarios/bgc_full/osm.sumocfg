@@ -18,6 +18,7 @@
     </output>
 
     <processing>
+        <time-to-teleport value="-1"/>
         <ignore-route-errors value="true"/>
         <tls.actuated.jam-threshold value="30"/>
     </processing>
