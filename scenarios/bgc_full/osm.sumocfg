@@ -6,21 +6,23 @@
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="osm.net.xml.gz"/>
-        <route-files value="trips.xml"/>
-        <additional-files value="osm.poly.xml.gz,output.add.xml"/>
+        <net-file value="final_map.net.xml"/>
+        <route-files value="trips_low.xml"/>
+        <additional-files value="osm.poly.xml.gz,output.add.xml,vtypes.add.xml"/>
     </input>
 
     <output>
-        <tripinfo-output value="data_selfish_tripinfo.xml"/>
-        <summary-output value="data_selfish_summary.xml"/>
-        <statistic-output value="data_selfish_stats.xml"/>
+        <tripinfo-output value="data\data_selfish_low_tripinfo.xml"/>
+        <summary-output value="data\data_selfish_low_summary.xml"/>
+        <statistic-output value="data\data_selfish_low_stats.xml"/>
     </output>
 
     <processing>
-        <time-to-teleport value="-1"/>
+        <time-to-teleport value="300"/>
         <ignore-route-errors value="true"/>
         <tls.actuated.jam-threshold value="30"/>
+
+	<device.emissions.probability value="1.0"/>
     </processing>
 
     <routing>
