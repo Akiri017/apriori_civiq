@@ -35,6 +35,12 @@
 -->
 
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+	   <vType id="veh_passenger" 
+           vClass="passenger" 
+           lcStrategic="10.0" 
+           lcCooperative="1.0" 
+           lcLookaheadLeft="3.0" 
+           jmIgnoreKeepClearTime="1.0"/>
     <vehicle id="0" depart="0.00">
         <route edges="-E9 -E3 -E0"/>
     </vehicle>
