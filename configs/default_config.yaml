@@ -4,6 +4,7 @@
 simulation:
   duration: 3600  # seconds
   step_length: 1.0  # seconds
+  teleport_time: -1 # disable teleportation
   
 network:
   map: "scenarios/bgc_full/"
