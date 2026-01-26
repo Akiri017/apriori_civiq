@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-01-19T17:21:10.853654+08:00 by Eclipse SUMO GUI 1.25.0
+<!-- generated on 2026-01-19T18:01:12.023116+08:00 by Eclipse SUMO GUI 1.25.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -1100,7 +1100,8 @@
     <tripinfo id="275" depart="550.00" departLane="-28554097#2_0" departPos="4.60" departSpeed="0.00" departDelay="0.00" arrival="947.00" arrivalLane="-32488152#0_0" arrivalPos="0.20" arrivalSpeed="12.79" duration="397.00" routeLength="3802.09" waitingTime="61.00" waitingCount="9" stopTime="0.00" timeLoss="182.10" rerouteNo="1" devices="tripinfo_275 routing_275 emissions_275" vType="thesis_car" speedFactor="0.97" vaporized="">
         <emissions CO_abs="33229.98" CO2_abs="1524421.21" HC_abs="187.28" PMx_abs="30.80" NOx_abs="642.18" fuel_abs="486222.55" electricity_abs="0.00"/>
     </tripinfo>
-    <tripinfo id="423" depart="846.00" departLane="-770797801_0" departPos="4.60" departSpeed="0.00" departDelay="0.00" arrival="951.00" arrivalLane="1072143217_0" arrivalPos="29.89" arrivalSpeed="11.61" duration="105.00" routeLength="694.03" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="18.06" rerouteNo="1" devices="tripinfo_423 routing_423 emissions_423" vType="thesis_car" speedFactor="1.01" vaporized="">
+    <tripinfo id="423" depart="846.00" departLane="-770797801_0" departPos="4.60" departSpeed="0.00" departDelay="0.00" arrival="951.00" arrivalLane="1072143217_0" arrivalPos="29.89" arrivalSpeed="11.61" duration="105.00" routeLength=</tripinfos>
+ngTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="18.06" rerouteNo="1" devices="tripinfo_423 routing_423 emissions_423" vType="thesis_car" speedFactor="1.01" vaporized="">
         <emissions CO_abs="5945.62" CO2_abs="248386.88" HC_abs="32.72" PMx_abs="4.21" NOx_abs="101.74" fuel_abs="79225.44" electricity_abs="0.00"/>
     </tripinfo>
     <tripinfo id="451" depart="902.00" departLane="-23296751#2_0" departPos="4.60" departSpeed="0.00" departDelay="0.00" arrival="951.00" arrivalLane="-1362795132#0_0" arrivalPos="30.20" arrivalSpeed="7.41" duration="49.00" routeLength="476.62" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="7.24" rerouteNo="1" devices="tripinfo_451 routing_451 emissions_451" vType="thesis_car" speedFactor="0.89" vaporized="">
