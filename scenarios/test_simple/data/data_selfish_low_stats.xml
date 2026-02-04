@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-01-14T14:13:03.713694+08:00 by Eclipse SUMO GUI 1.25.0
+<!-- generated on 2026-02-03T16:43:19.994228+08:00 by Eclipse SUMO GUI 1.25.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="C:\Users\ASUS\Documents\SUMO_Networks\scenarios\test_simple_2lanes\final_map.net.xml"/>
-        <route-files value="C:\Users\ASUS\Documents\SUMO_Networks\scenarios\test_simple_2lanes\trips_low.xml"/>
+        <net-file value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\final_map.net.xml"/>
+        <route-files value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\trips_low.xml"/>
     </input>
 
     <output>
-        <summary-output value="C:\Users\ASUS\Documents\SUMO_Networks\scenarios\test_simple_2lanes\data\data_selfish_low_summary.xml"/>
-        <tripinfo-output value="C:\Users\ASUS\Documents\SUMO_Networks\scenarios\test_simple_2lanes\data\data_selfish_low_tripinfo.xml"/>
-        <statistic-output value="C:\Users\ASUS\Documents\SUMO_Networks\scenarios\test_simple_2lanes\data\data_selfish_low_stats.xml"/>
+        <summary-output value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\data\data_selfish_low_summary.xml"/>
+        <tripinfo-output value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\data\data_selfish_low_tripinfo.xml"/>
+        <statistic-output value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\data\data_selfish_low_stats.xml"/>
     </output>
 
     <time>
@@ -32,13 +32,13 @@
 -->
 
 <statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
-    <performance clockBegin="147827.05" clockEnd="147834.61" clockDuration="7.56" traciDuration="6.78" realTimeFactor="476.32" vehicleUpdatesPerSecond="10204.82" personUpdatesPerSecond="0.00" begin="0.00" end="3600.00" duration="3600.00"/>
-    <vehicles loaded="563" inserted="563" running="18" waiting="0"/>
+    <performance clockBegin="351104.67" clockEnd="351105.66" clockDuration="0.99" traciDuration="0.00" realTimeFactor="0.00" vehicleUpdatesPerSecond="0.00" personUpdatesPerSecond="0.00" begin="0.00" end="0.00" duration="0.00"/>
+    <vehicles loaded="2" inserted="0" running="0" waiting="0"/>
     <teleports total="0" jam="0" yield="0" wrongLane="0"/>
     <safety collisions="0" emergencyStops="0" emergencyBraking="0"/>
     <persons loaded="0" running="0" jammed="0"/>
     <personTeleports total="0" abortWait="0" wrongDest="0"/>
-    <vehicleTripStatistics count="545" routeLength="1626.84" speed="11.83" duration="139.38" waitingTime="3.50" timeLoss="20.67" departDelay="0.46" departDelayWaiting="-1.00" totalTravelTime="75964.00" totalDepartDelay="249.60"/>
+    <vehicleTripStatistics count="0" routeLength="0.00" speed="0.00" duration="0.00" waitingTime="0.00" timeLoss="0.00" departDelay="0.00" departDelayWaiting="-1.00" totalTravelTime="0.00" totalDepartDelay="0.00"/>
     <pedestrianStatistics number="0" routeLength="0.00" duration="0.00" timeLoss="0.00"/>
     <rideStatistics number="0"/>
     <transportStatistics number="0"/>
