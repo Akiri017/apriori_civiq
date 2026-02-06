@@ -485,3 +485,4 @@
     <tripinfo id="182" depart="128.00" departLane="-745055614#1_1" departPos="4.60" departSpeed="0.00" departDelay="0.60" arrival="215.00" arrivalLane="27788646#3_0" arrivalPos="14.01" arrivalSpeed="20.41" duration="87.00" routeLength="353.64" waitingTime="47.00" waitingCount="2" stopTime="0.00" timeLoss="68.44" rerouteNo="1" devices="tripinfo_182 routing_182 emissions_182" vType="thesis_car" speedFactor="1.03" vaporized="">
         <emissions CO_abs="11976.55" CO2_abs="339202.21" HC_abs="62.61" PMx_abs="7.58" NOx_abs="149.13" fuel_abs="108192.40" electricity_abs="0.00"/>
     </tripinfo>
+</tripinfos>

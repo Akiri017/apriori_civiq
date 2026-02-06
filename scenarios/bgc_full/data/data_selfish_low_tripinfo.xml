@@ -89,3 +89,4 @@
     <tripinfo id="93" depart="186.00" departLane="-28996944_0" departPos="4.60" departSpeed="0.00" departDelay="0.00" arrival="212.00" arrivalLane="28996944_0" arrivalPos="114.98" arrivalSpeed="12.25" duration="26.00" routeLength="230.04" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="7.27" rerouteNo="0" devices="tripinfo_93 routing_93 emissions_93" vType="thesis_car" speedFactor="0.92" vaporized="">
         <emissions CO_abs="1786.00" CO2_abs="94265.04" HC_abs="10.35" PMx_abs="1.78" NOx_abs="39.55" fuel_abs="30066.28" electricity_abs="0.00"/>
     </tripinfo>
+</tripinfos>

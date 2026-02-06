@@ -41,3 +41,17 @@
     </gui_only>
 
 </sumoConfiguration>
+-->
+
+<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
+    <performance clockBegin="429549.40" clockEnd="438183.80" clockDuration="8634.40" traciDuration="0.00" realTimeFactor="0.03" vehicleUpdatesPerSecond="1.26" personUpdatesPerSecond="0.00" begin="0.00" end="218.00" duration="218.00"/>
+    <vehicles loaded="204" inserted="109" running="94" waiting="0"/>
+    <teleports total="0" jam="0" yield="0" wrongLane="0"/>
+    <safety collisions="0" emergencyStops="0" emergencyBraking="0"/>
+    <persons loaded="0" running="0" jammed="0"/>
+    <personTeleports total="0" abortWait="0" wrongDest="0"/>
+    <vehicleTripStatistics count="15" routeLength="742.96" speed="8.98" duration="79.73" waitingTime="4.67" timeLoss="21.46" departDelay="0.00" departDelayWaiting="-1.00" totalTravelTime="1196.00" totalDepartDelay="0.00"/>
+    <pedestrianStatistics number="0" routeLength="0.00" duration="0.00" timeLoss="0.00"/>
+    <rideStatistics number="0"/>
+    <transportStatistics number="0"/>
+</statistics>
