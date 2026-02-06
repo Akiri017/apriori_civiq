@@ -130,7 +130,7 @@ def main():
     args = parser.parse_args()
 
     # Path: scenarios/bgc_core/data
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     data_path = os.path.join(base_dir, "scenarios", args.scenario, "data")
 
     print(f"Reading files from: {data_path}")

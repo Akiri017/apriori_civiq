@@ -8,6 +8,7 @@ simulation:
   
 network:
   map: "scenarios/bgc_full/"
+  route_file: "wardrop_routes.rou.xml"
   
 training:
   episodes: 1000
