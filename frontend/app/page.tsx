@@ -13,10 +13,21 @@ export default function Home() {
       {/* Header */}
       <Header />
 
-      {/* Hero Section with Title */}
-      <section className="relative w-full pt-20 pb-32 bg-[#e5e7eb]">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="text-center">
+      {/* Hero Section with Title and Simulation Controls */}
+      <section className="relative w-full pt-20 pb-20 bg-[#e5e7eb] overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 opacity-50 pointer-events-none">
+          <img 
+            alt="" 
+            className="absolute h-[142.97%] left-0 max-w-none top-[-43.02%] w-[116.79%]" 
+            src="https://www.figma.com/api/mcp/asset/5608de9b-06dd-4684-a0da-f76a2c904f0d" 
+          />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-8">
+          {/* Title */}
+          <div className="text-center mb-[123px]">
             <h1 className="font-bold text-civiq-dark text-[75px] leading-tight">
               Civiq
             </h1>
@@ -25,12 +36,8 @@ export default function Home() {
               <p>using QMIX for Urban Optimization</p>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Simulation Controls Section */}
-      <section className="relative w-full py-20 bg-[#e5e7eb]">
-        <div className="max-w-7xl mx-auto px-8">
+          {/* Simulation Controls */}
           <SimulationControls />
         </div>
       </section>

@@ -9,11 +9,11 @@ export const Header = () => {
       <div className="max-w-7xl mx-auto px-8">
         <div className="flex items-center justify-between h-[70px]">
           <div className="flex items-center gap-3">
-            <div className="relative size-[41px]">
+            <div className="relative w-[44px] h-[44px]">
               <img
                 alt="Civiq Logo"
-                className="object-cover"
-                src="http://localhost:3845/assets/bf3344aa58467d40fc78bdfe6536dfaf33b3fe5d.png"
+                className="w-full h-full object-contain"
+                src="/civiq-logo.png"
               />
             </div>
             <p className="font-bold text-[24px] text-civiq-purple">Civiq</p>
