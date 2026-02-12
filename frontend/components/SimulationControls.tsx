@@ -39,6 +39,7 @@ const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: Drop
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const selectedOption = options.find(opt => opt.value === selected)
+  const displayText = selectedOption?.label || label
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -46,10 +47,12 @@ const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: Drop
         className="bg-white rounded-[30px] p-6 flex items-center justify-between cursor-pointer hover:shadow-lg transition-shadow shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] h-full"
         onClick={onToggle}
       >
-        <p className="font-bold text-civiq-blue text-[16px]">{selectedOption?.label || label}</p>
+        <p className={`font-bold text-[16px] ${selectedOption ? 'text-civiq-blue' : 'text-gray-400'}`}>
+          {displayText}
+        </p>
         <IconChevronDown 
           size={24} 
-          className={`text-civiq-blue transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          className={`transition-transform ${selectedOption ? 'text-civiq-blue' : 'text-gray-400'} ${isOpen ? 'rotate-180' : ''}`} 
         />
       </div>
       
@@ -74,9 +77,9 @@ const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: Drop
 }
 
 export const SimulationControls = () => {
-  const [mapSize, setMapSize] = useState('2km')
-  const [trafficScale, setTrafficScale] = useState('free_flow')
-  const [view, setView] = useState('focused')
+  const [mapSize, setMapSize] = useState('')
+  const [trafficScale, setTrafficScale] = useState('')
+  const [view, setView] = useState('')
   
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
@@ -144,24 +147,30 @@ export const SimulationControls = () => {
         </div>
       </div>
 
-      {/* Algorithm Selection */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Monolithic QMIX */}
-        <div className="bg-white rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-6">
-          <div className="flex items-center justify-between">
-            <p className="font-bold text-civiq-blue text-[16px]">Monolithic QMIX</p>
-            <IconChevronDown size={24} className="text-civiq-blue" />
+      {/* Algorithm Selection - Show only after view is selected */}
+      {view && (
+        <div className={`grid ${view === 'comparative' ? 'grid-cols-2' : 'grid-cols-1'} gap-6`}>
+          {/* First Algorithm Option */}
+          <div className="bg-white rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-6">
+            <div className="flex items-center justify-between">
+              <p className="font-bold text-civiq-blue text-[16px]">
+                {view === 'comparative' ? 'Monolithic QMIX' : 'Algorithm Selection'}
+              </p>
+              <IconChevronDown size={24} className="text-civiq-blue" />
+            </div>
           </div>
-        </div>
 
-        {/* Hierarchical QMIX */}
-        <div className="bg-white rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-6">
-          <div className="flex items-center justify-between">
-            <p className="font-bold text-civiq-blue text-[16px]">Hierarchical QMIX (Civiq)</p>
-            <IconChevronDown size={24} className="text-civiq-blue" />
-          </div>
+          {/* Second Algorithm Option - Only for Comparative View */}
+          {view === 'comparative' && (
+            <div className="bg-white rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-6">
+              <div className="flex items-center justify-between">
+                <p className="font-bold text-civiq-blue text-[16px]">Hierarchical QMIX (Civiq)</p>
+                <IconChevronDown size={24} className="text-civiq-blue" />
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   )
 }
