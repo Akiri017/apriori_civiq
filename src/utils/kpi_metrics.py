@@ -2,7 +2,13 @@ import os
 import argparse
 import xml.etree.ElementTree as ET
 
-def parse_tripinfo(file_path):
+# python src/utils/analyze_metrics.py --scenario bgc_full --high
+# python src/utils/analyze_metrics.py --scenario bgc_core --med
+# python src/utils/analyze_metrics.py --scenario test_simple --low
+
+
+
+def parse_tripinfo(file_path):  
     """Calculates Routing Effectiveness + Environmental Metrics"""
     if not os.path.exists(file_path):
         return None
@@ -130,7 +136,7 @@ def main():
     args = parser.parse_args()
 
     # Path: scenarios/bgc_core/data
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     data_path = os.path.join(base_dir, "scenarios", args.scenario, "data")
 
     print(f"Reading files from: {data_path}")
