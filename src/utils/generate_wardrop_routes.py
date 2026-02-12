@@ -46,5 +46,5 @@ def run_marouter(level="high"):
         print(f">>> ERROR: marouter failed.")
 
 if __name__ == "__main__":
-    # --- CHANGE THIS WORD TO "high", "medium", or "low" ---
-    run_marouter("medium")
+    # --- CHANGE THIS WORD TO "high", "med", or "low" ---
+    run_marouter("high")

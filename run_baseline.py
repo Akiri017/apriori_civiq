@@ -11,53 +11,65 @@ from src.utils.metrics import MetricsLogger
 from configs.config_loader import CONFIG 
 
 def run_experiment():
+    # 1. IDENTIFY SCENARIO
+    # We look at the route file in config to decide what to name the output
+    route_file = CONFIG['network'].get('route_file', '')
+    
     print("==================================================")
-    print("   STARTING CIVIQ MONTH 1 BASELINE (WARDROP)")
+    print(f"   STARTING CIVIQ BASELINE")
+    print(f"   Route File: {route_file}")
     print("==================================================")
     
     # Validation Check
-    if "wardrop" not in CONFIG['network'].get('route_file', ''):
-        print(">>> WARNING: Your config does not seem to point to 'wardrop_routes.rou.xml'.")
-        print(f"    Current setting: {CONFIG['network'].get('route_file')}")
-        print("    Are you sure you updated default_config.yaml?")
-        time.sleep(3) # Give user time to read warning
+    if "wardrop" not in route_file:
+        print(">>> WARNING: Config does not point to a Wardrop route file.")
+        print(f"    Current: {route_file}")
+        print("    Proceeding anyway, but check your default_config.yaml!")
+        time.sleep(2)
 
-    # 1. Initialize Components
+    # 2. DETERMINE OUTPUT FILENAME
+    # If route file is 'wardrop_routes_med.rou.xml', output -> 'baseline_results_med.csv'
+    # If route file is 'wardrop_routes_high.rou.xml', output -> 'baseline_results_high.csv'
+    if "_med" in route_file:
+        csv_name = "baseline_results_med.csv"
+    elif "_high" in route_file:
+        csv_name = "baseline_results_high.csv"
+    elif "_low" in route_file:
+        csv_name = "baseline_results_low.csv"
+    else:
+        csv_name = "baseline_results.csv" # Default fallback
+
+    # 3. Initialize Components
     env = CiviqEnv()
-    agent = WardropAgent()  # Using the passive agent
+    agent = WardropAgent()  
     logger = MetricsLogger()
     
     env.start()
     
-    # 2. Run Simulation (3600 Steps = 1 Hour)
+    # 4. Run Simulation (3600 Steps = 1 Hour)
     max_steps = 3600
     start_time = time.time()
     
     for step in range(max_steps):
-        # A. Step Physics
         env.step()
-        
-        # B. Agent Act (Does nothing, but keeps architecture consistent)
         agent.act(step)
         
-        # C. Log Data (Every 10 seconds)
         if step % 10 == 0:
             logger.log_step(step)
             
-        # Optional: Print progress
         if step % 500 == 0:
             print(f"... Simulating Step {step}/{max_steps}")
 
     end_time = time.time()
     print(f"\n>>> Simulation Finished in {end_time - start_time:.2f} seconds.")
 
-    # 3. Save Results
-    logger.save_to_csv("baseline_results.csv")
+    # 5. Save Results (Safely!)
+    logger.save_to_csv(csv_name)
     env.close()
     
     print("==================================================")
-    print("   ✅ BASELINE DATA GENERATED SUCCESSFULLY")
-    print("   📂 File: baseline_results.csv")
+    print("   ✅ BASELINE DATA GENERATED")
+    print(f"   📂 Saved to: {csv_name}")  # <--- Verifies the safe filename
     print("==================================================")
 
 if __name__ == "__main__":
