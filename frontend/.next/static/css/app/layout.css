@@ -535,6 +535,12 @@ video {
 .left-0 {
   left: 0px;
 }
+.right-0 {
+  right: 0px;
+}
+.top-full {
+  top: 100%;
+}
 .z-50 {
   z-index: 50;
 }
@@ -721,6 +727,10 @@ video {
   --tw-rotate: -90deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
+.rotate-180 {
+  --tw-rotate: 180deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
 .transform {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
@@ -823,6 +833,9 @@ video {
 .rounded-\[24px\] {
   border-radius: 24px;
 }
+.rounded-\[20px\] {
+  border-radius: 20px;
+}
 .border-2 {
   border-width: 2px;
 }
@@ -915,6 +928,10 @@ video {
 .px-3 {
   padding-left: 0.75rem;
   padding-right: 0.75rem;
+}
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 .pb-12 {
   padding-bottom: 3rem;
@@ -1090,6 +1107,11 @@ video {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
 .duration-200 {
   transition-duration: 200ms;
 }
@@ -1104,6 +1126,10 @@ html {
 body {
   background-color: #e5e7eb;
   color: #031661;
+}
+
+.hover\:bg-civiq-blue\/10:hover {
+  background-color: rgb(30 64 175 / 0.1);
 }
 
 .hover\:bg-opacity-90:hover {
@@ -1133,6 +1159,12 @@ body {
 .hover\:shadow-\[0px_8px_12px_0px_rgba\(0\2c 0\2c 0\2c 0\.15\)\]:hover {
   --tw-shadow: 0px 8px 12px 0px rgba(0,0,0,0.15);
   --tw-shadow-colored: 0px 8px 12px 0px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.hover\:shadow-lg:hover {
+  --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
