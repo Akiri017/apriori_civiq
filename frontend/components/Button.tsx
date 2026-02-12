@@ -7,6 +7,7 @@ interface ButtonProps {
   onPress?: () => void
   children: React.ReactNode
   className?: string
+  fullWidth?: boolean
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -14,17 +15,19 @@ export const Button: React.FC<ButtonProps> = ({
   onPress,
   children,
   className = '',
+  fullWidth = false,
 }) => {
-  const baseStyles = 'px-6 py-2 rounded-lg font-semibold transition-all duration-200 cursor-pointer'
+  const baseStyles = 'rounded-[30px] p-6 font-bold text-[16px] transition-all duration-200 cursor-pointer flex items-center justify-center'
   const variants = {
     primary: 'bg-civiq-purple text-white hover:bg-opacity-90 shadow-lg',
     secondary: 'bg-white text-civiq-purple border-2 border-civiq-purple hover:bg-opacity-90',
   }
+  const widthStyle = fullWidth ? 'w-full' : ''
 
   return (
     <button
       onClick={onPress}
-      className={`${baseStyles} ${variants[variant]} ${className}`}
+      className={`${baseStyles} ${variants[variant]} ${widthStyle} ${className}`}
     >
       {children}
     </button>

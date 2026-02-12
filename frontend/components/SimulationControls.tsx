@@ -43,12 +43,12 @@ const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: Drop
   return (
     <div className="relative" ref={dropdownRef}>
       <div 
-        className="bg-white rounded-[30px] p-6 flex items-center justify-between cursor-pointer hover:shadow-lg transition-shadow"
+        className="bg-white rounded-[30px] p-6 flex items-center justify-between cursor-pointer hover:shadow-lg transition-shadow shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] h-full"
         onClick={onToggle}
       >
-        <p className="font-bold text-civiq-blue text-[24px]">{selectedOption?.label || label}</p>
+        <p className="font-bold text-civiq-blue text-[16px]">{selectedOption?.label || label}</p>
         <IconChevronDown 
-          size={48} 
+          size={24} 
           className={`text-civiq-blue transition-transform ${isOpen ? 'rotate-180' : ''}`} 
         />
       </div>
@@ -58,7 +58,7 @@ const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: Drop
           {options.map((option) => (
             <div
               key={option.value}
-              className="px-6 py-4 hover:bg-civiq-blue/10 cursor-pointer text-civiq-dark font-semibold text-[18px] transition-colors"
+              className="px-6 py-4 hover:bg-civiq-blue/10 cursor-pointer text-civiq-dark font-semibold text-[14px] transition-colors"
               onClick={() => {
                 onSelect(option.value)
                 onToggle()
@@ -140,9 +140,7 @@ export const SimulationControls = () => {
           />
 
           {/* Run Simulation */}
-          <div className="flex items-center justify-center">
-            <Button variant="primary">Run Simulation</Button>
-          </div>
+          <Button variant="primary" fullWidth>Run Simulation</Button>
         </div>
       </div>
 
@@ -151,16 +149,16 @@ export const SimulationControls = () => {
         {/* Monolithic QMIX */}
         <div className="bg-white rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-6">
           <div className="flex items-center justify-between">
-            <p className="font-bold text-civiq-blue text-[24px]">Monolithic QMIX</p>
-            <IconChevronDown size={48} className="text-civiq-blue" />
+            <p className="font-bold text-civiq-blue text-[16px]">Monolithic QMIX</p>
+            <IconChevronDown size={24} className="text-civiq-blue" />
           </div>
         </div>
 
         {/* Hierarchical QMIX */}
         <div className="bg-white rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-6">
           <div className="flex items-center justify-between">
-            <p className="font-bold text-civiq-blue text-[24px]">Hierarchical QMIX (Civiq)</p>
-            <IconChevronDown size={48} className="text-civiq-blue" />
+            <p className="font-bold text-civiq-blue text-[16px]">Hierarchical QMIX (Civiq)</p>
+            <IconChevronDown size={24} className="text-civiq-blue" />
           </div>
         </div>
       </div>
