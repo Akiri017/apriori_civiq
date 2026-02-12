@@ -44,25 +44,26 @@ const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: Drop
   return (
     <div className="relative" ref={dropdownRef}>
       <div 
-        className="bg-white rounded-[30px] p-6 flex items-center justify-between cursor-pointer hover:shadow-lg transition-shadow shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] h-full"
+        className="bg-white rounded-[30px] px-5 py-3.5 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow shadow-sm border border-gray-200"
         onClick={onToggle}
       >
-        <p className={`font-bold text-[16px] ${selectedOption ? 'text-civiq-blue' : 'text-gray-400'}`}>
+        <p className={`font-semibold text-[15px] ${selectedOption ? 'text-civiq-blue' : 'text-gray-500'}`}>
           {displayText}
         </p>
         <IconChevronDown 
-          size={24} 
+          size={20} 
           className={`transition-transform ${selectedOption ? 'text-civiq-blue' : 'text-gray-400'} ${isOpen ? 'rotate-180' : ''}`} 
         />
       </div>
       
       {isOpen && (
-        <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-[20px] shadow-lg z-10 overflow-hidden">
+        <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-[20px] shadow-xl z-[100] overflow-hidden border border-gray-100">
           {options.map((option) => (
             <div
               key={option.value}
-              className="px-6 py-4 hover:bg-civiq-blue/10 cursor-pointer text-civiq-dark font-semibold text-[14px] transition-colors"
-              onClick={() => {
+              className="px-5 py-3 hover:bg-civiq-blue/10 cursor-pointer text-civiq-dark font-medium text-[14px] transition-colors"
+              onClick={(e) => {
+                e.stopPropagation()
                 onSelect(option.value)
                 onToggle()
               }}
@@ -90,7 +91,10 @@ export const SimulationControls = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (openDropdown) {
+      const target = event.target as HTMLElement
+      // Check if click is outside all dropdown containers
+      const isOutside = !target.closest('.relative')
+      if (isOutside && openDropdown) {
         setOpenDropdown(null)
       }
     }
@@ -104,14 +108,14 @@ export const SimulationControls = () => {
   return (
     <div className="w-full">
       {/* Title */}
-      <h2 className="font-bold text-civiq-dark text-[22px] mb-6 flex items-center gap-2">
-        <img alt="Icon" src="http://localhost:3845/assets/0d6c25a108d6d37b7161f5d7e9f9725c00cc2801.png" className="w-7 h-7" />
+      <h2 className="font-bold text-civiq-dark text-[18px] mb-3 flex items-center gap-2">
+        <img alt="Icon" src="http://localhost:3845/assets/0d6c25a108d6d37b7161f5d7e9f9725c00cc2801.png" className="w-5 h-5" />
         Simulation Controls
       </h2>
 
       {/* Control Panel */}
-      <div className="bg-[#e5e7eb] rounded-[45px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-8 mb-6">
-        <div className="grid grid-cols-4 gap-4">
+      <div className="bg-gray-100 rounded-[40px] shadow-sm p-5 mb-4 border border-gray-200">
+        <div className="grid grid-cols-4 gap-3">
           {/* Map Size */}
           <Dropdown
             label="Map Size"
@@ -149,23 +153,23 @@ export const SimulationControls = () => {
 
       {/* Algorithm Selection - Show only after view is selected */}
       {view && (
-        <div className={`grid ${view === 'comparative' ? 'grid-cols-2' : 'grid-cols-1'} gap-6`}>
+        <div className={`grid ${view === 'comparative' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
           {/* First Algorithm Option */}
-          <div className="bg-white rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-6">
+          <div className="bg-white rounded-[30px] shadow-sm px-5 py-3.5 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center justify-between">
-              <p className="font-bold text-civiq-blue text-[16px]">
+              <p className="font-semibold text-civiq-blue text-[15px]">
                 {view === 'comparative' ? 'Monolithic QMIX' : 'Algorithm Selection'}
               </p>
-              <IconChevronDown size={24} className="text-civiq-blue" />
+              <IconChevronDown size={20} className="text-civiq-blue" />
             </div>
           </div>
 
           {/* Second Algorithm Option - Only for Comparative View */}
           {view === 'comparative' && (
-            <div className="bg-white rounded-[30px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-6">
+            <div className="bg-white rounded-[30px] shadow-sm px-5 py-3.5 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
               <div className="flex items-center justify-between">
-                <p className="font-bold text-civiq-blue text-[16px]">Hierarchical QMIX (Civiq)</p>
-                <IconChevronDown size={24} className="text-civiq-blue" />
+                <p className="font-semibold text-civiq-blue text-[15px]">Hierarchical QMIX (Civiq)</p>
+                <IconChevronDown size={20} className="text-civiq-blue" />
               </div>
             </div>
           )}

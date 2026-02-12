@@ -5,22 +5,22 @@ import Image from 'next/image'
 
 export const Header = () => {
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-[#c9c9c9]">
-      <div className="max-w-7xl mx-auto px-8">
-        <div className="flex items-center justify-between h-[70px]">
-          <div className="flex items-center gap-3">
-            <div className="relative w-[44px] h-[44px]">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <div className="max-w-[1400px] mx-auto px-6">
+        <div className="flex items-center justify-between h-[64px]">
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-[36px] h-[36px]">
               <img
                 alt="Civiq Logo"
                 className="w-full h-full object-contain"
                 src="/civiq-logo.png"
               />
             </div>
-            <p className="font-bold text-[24px] text-civiq-purple">Civiq</p>
+            <p className="font-bold text-[20px] text-civiq-purple">Civiq</p>
           </div>
 
-          <div className="flex items-center gap-8">
-            <a href="#about" className="font-normal text-[22px] text-civiq-dark hover:text-civiq-purple transition-colors">
+          <div className="flex items-center gap-6">
+            <a href="#about" className="font-medium text-[15px] text-civiq-dark hover:text-civiq-purple transition-colors">
               About Civiq
             </a>
             <Button variant="primary">Contact Us</Button>

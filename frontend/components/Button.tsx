@@ -17,9 +17,9 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   fullWidth = false,
 }) => {
-  const baseStyles = 'rounded-[30px] p-6 font-bold text-[16px] transition-all duration-200 cursor-pointer flex items-center justify-center'
+  const baseStyles = 'rounded-[30px] px-6 py-3 font-semibold text-[15px] transition-all duration-200 cursor-pointer flex items-center justify-center'
   const variants = {
-    primary: 'bg-civiq-purple text-white hover:bg-opacity-90 shadow-lg',
+    primary: 'bg-civiq-purple text-white hover:bg-opacity-90 shadow-md hover:shadow-lg',
     secondary: 'bg-white text-civiq-purple border-2 border-civiq-purple hover:bg-opacity-90',
   }
   const widthStyle = fullWidth ? 'w-full' : ''
