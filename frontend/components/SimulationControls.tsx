@@ -111,13 +111,37 @@ export const SimulationControls = ({
     setOpenDropdown(openDropdown === name ? null : name)
   }
 
+  // Validation logic
+  const isFormValid = () => {
+    // Check if basic required fields are filled
+    if (!mapSize || !trafficScale || !view) {
+      return false
+    }
+    
+    // Check algorithm selection based on view type
+    if (view === 'focused') {
+      return !!algorithm1
+    } else if (view === 'comparative') {
+      return !!algorithm1 && !!algorithm2 && algorithm1 !== algorithm2
+    }
+    
+    return false
+  }
+
   const handleRunSimulation = () => {
+    // Validate before navigation
+    if (!isFormValid()) {
+      return
+    }
+    
     const params = new URLSearchParams()
-    if (mapSize) params.set('mapSize', mapSize)
-    if (trafficScale) params.set('trafficScale', trafficScale)
-    if (view) params.set('view', view)
-    if (algorithm1) params.set('algorithm1', algorithm1)
-    if (algorithm2) params.set('algorithm2', algorithm2)
+    params.set('mapSize', mapSize)
+    params.set('trafficScale', trafficScale)
+    params.set('view', view)
+    params.set('algorithm1', algorithm1)
+    if (view === 'comparative' && algorithm2) {
+      params.set('algorithm2', algorithm2)
+    }
     
     router.push(`/simulation?${params.toString()}`)
   }
@@ -198,7 +222,12 @@ export const SimulationControls = ({
           />
 
           {/* Run Simulation */}
-          <Button variant="primary" fullWidth onPress={handleRunSimulation}>
+          <Button 
+            variant="primary" 
+            fullWidth 
+            onPress={handleRunSimulation}
+            disabled={!mapSize || !trafficScale || !view || !algorithm1 || (view === 'comparative' && !algorithm2)}
+          >
             Run Simulation
           </Button>
         </div>
@@ -206,28 +235,53 @@ export const SimulationControls = ({
 
       {/* Algorithm Selection - Show only after view is selected */}
       {view && (
-        <div className={`grid ${view === 'comparative' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
-          {/* First Algorithm Option */}
-          <Dropdown
-            label={view === 'comparative' ? 'Algorithm 1' : 'Algorithm Selection'}
-            options={view === 'comparative' ? algorithmOptions.filter(opt => opt.value !== algorithm2) : algorithmOptions}
-            selected={algorithm1}
-            onSelect={setAlgorithm1}
-            isOpen={openDropdown === 'algorithm1'}
-            onToggle={() => toggleDropdown('algorithm1')}
-          />
-
-          {/* Second Algorithm Option - Only for Comparative View */}
-          {view === 'comparative' && (
+        <>
+          <div className={`grid ${view === 'comparative' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+            {/* First Algorithm Option */}
             <Dropdown
-              label="Algorithm 2"
-              options={algorithmOptions.filter(opt => opt.value !== algorithm1)}
-              selected={algorithm2}
-              onSelect={setAlgorithm2}
-              isOpen={openDropdown === 'algorithm2'}
-              onToggle={() => toggleDropdown('algorithm2')}
+              label={view === 'comparative' ? 'Algorithm 1' : 'Algorithm Selection'}
+              options={view === 'comparative' ? algorithmOptions.filter(opt => opt.value !== algorithm2) : algorithmOptions}
+              selected={algorithm1}
+              onSelect={setAlgorithm1}
+              isOpen={openDropdown === 'algorithm1'}
+              onToggle={() => toggleDropdown('algorithm1')}
             />
+
+            {/* Second Algorithm Option - Only for Comparative View */}
+            {view === 'comparative' && (
+              <Dropdown
+                label="Algorithm 2"
+                options={algorithmOptions.filter(opt => opt.value !== algorithm1)}
+                selected={algorithm2}
+                onSelect={setAlgorithm2}
+                isOpen={openDropdown === 'algorithm2'}
+                onToggle={() => toggleDropdown('algorithm2')}
+              />
+            )}
+          </div>
+          
+          {/* Validation Message */}
+          {!isFormValid() && (
+            <div className="mt-3 text-sm text-red-500 flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+              <span>
+                {!algorithm1 && 'Please select an algorithm to continue.'}
+                {algorithm1 && view === 'comparative' && !algorithm2 && 'Please select a second algorithm for comparison.'}
+              </span>
+            </div>
           )}
+        </>
+      )}
+      
+      {/* Message when view is not selected */}
+      {!view && (
+        <div className="mt-3 text-sm text-gray-500 flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+          <span>Select map size, traffic scale, and view to configure algorithm options.</span>
         </div>
       )}
     </div>
