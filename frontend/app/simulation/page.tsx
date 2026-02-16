@@ -37,7 +37,7 @@ export default function SimulationDashboard() {
   const [duration, setDuration] = useState(119) // Default 1:59, will be updated when video loads
   
   // Pan and zoom state
-  const [scale, setScale] = useState(1)
+  const [scale, setScale] = useState(3)
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
@@ -65,20 +65,26 @@ export default function SimulationDashboard() {
     if (!video) return
 
     const handleLoadedMetadata = () => {
-      setDuration(video.duration)
+      setDuration(video.duration || 119)
     }
 
     const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime)
+      setCurrentTime(video.currentTime || 0)
     }
 
     const handleEnded = () => {
       setIsPlaying(false)
+      setCurrentTime(video.duration || 0)
     }
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata)
     video.addEventListener('timeupdate', handleTimeUpdate)
     video.addEventListener('ended', handleEnded)
+
+    // Initialize duration if metadata is already loaded
+    if (video.duration) {
+      setDuration(video.duration)
+    }
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata)
@@ -193,54 +199,147 @@ export default function SimulationDashboard() {
 
         {/* Map Visualization */}
         <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6 mb-6">
-          <h3 className="font-bold text-civiq-dark text-[18px] mb-4">Simulation Player</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-civiq-dark text-[18px]">Interactive Simulation Map</h3>
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <span className="flex items-center gap-1">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
+                  <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+                </svg>
+                Pan with mouse
+              </span>
+              <span className="flex items-center gap-1">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 5v2m0 10v2m7-7h-2M5 12h2"/>
+                </svg>
+                Scroll to zoom
+              </span>
+            </div>
+          </div>
           
-          {/* Video Container */}
-          <div 
-            className="aspect-video bg-gray-100 rounded-[20px] overflow-hidden mb-4 relative cursor-move"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onWheel={handleWheel}
-          >
+          {/* Video Container with Map Styling */}
+          <div className="relative">
             <div 
-              className="w-full h-full"
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-              }}
+              className={`aspect-video bg-gray-900 rounded-[20px] overflow-hidden relative border-4 border-gray-300 shadow-lg ${
+                isDragging ? 'cursor-grabbing' : 'cursor-grab'
+              }`}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onWheel={handleWheel}
+              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.1)' }}
             >
-              <video
-                ref={videoRef}
-                src="/simulation.mp4"
-                className="w-full h-full object-cover select-none pointer-events-none"
-                draggable={false}
-                preload="metadata"
-              />
-            </div>
-            
-            {/* Zoom indicator */}
-            <div className="absolute top-4 right-4 bg-white/90 px-3 py-1.5 rounded-full text-xs font-semibold text-civiq-dark">
-              {Math.round(scale * 100)}%
-            </div>
-            
-            {/* Time overlay */}
-            <div className="absolute top-4 left-4 bg-white/90 px-3 py-1.5 rounded-full text-xs font-semibold text-civiq-dark">
-              {formatTime(currentTime)} / {formatTime(duration)}
+              <div 
+                className="w-full h-full"
+                style={{
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                  transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                  transformOrigin: 'center center'
+                }}
+              >
+                <video
+                  ref={videoRef}
+                  src="/simulation.mp4"
+                  className="w-full h-full object-contain select-none pointer-events-none"
+                  draggable={false}
+                  preload="metadata"
+                />
+              </div>
+              
+              {/* Map Grid Overlay */}
+              <div className="absolute inset-0 pointer-events-none" style={{
+                backgroundImage: `
+                  linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
+                `,
+                backgroundSize: '50px 50px'
+              }} />
+              
+              {/* Top overlays */}
+              <div className="absolute top-4 left-4 right-4 flex items-start justify-between pointer-events-none">
+                {/* Time overlay */}
+                <div className="bg-civiq-dark/90 backdrop-blur-sm px-4 py-2 rounded-lg text-white font-mono text-sm shadow-lg border border-white/10">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </div>
+                </div>
+                
+                {/* Zoom indicator */}
+                <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg text-civiq-dark font-semibold text-sm shadow-lg border border-gray-200">
+                  🔍 {Math.round(scale * 100)}%
+                </div>
+              </div>
+              
+              {/* Map Controls - Right side */}
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 pointer-events-auto">
+                {/* Zoom In */}
+                <button
+                  className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all font-bold text-xl"
+                  onClick={() => setScale(Math.min(3, scale + 0.25))}
+                  title="Zoom In"
+                >
+                  +
+                </button>
+                
+                {/* Zoom Out */}
+                <button
+                  className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all font-bold text-xl"
+                  onClick={() => setScale(Math.max(0.5, scale - 0.25))}
+                  title="Zoom Out"
+                >
+                  −
+                </button>
+                
+                {/* Reset View */}
+                <button
+                  className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all"
+                  onClick={() => {
+                    setScale(1)
+                    setPosition({ x: 0, y: 0 })
+                  }}
+                  title="Reset View"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+                  </svg>
+                </button>
+                
+                {/* Fit to Screen */}
+                <button
+                  className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all"
+                  onClick={() => {
+                    setScale(1)
+                    setPosition({ x: 0, y: 0 })
+                  }}
+                  title="Fit to Screen"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v4c0 1.1.9 2 2 2h4v-2H5v-4zm14 4h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5c0-1.1-.9-2-2-2z"/>
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Compass indicator - Bottom left */}
+              <div className="absolute bottom-4 left-4 w-12 h-12 bg-white/95 backdrop-blur-sm rounded-full shadow-lg border-2 border-gray-200 flex items-center justify-center pointer-events-none">
+                <div className="text-civiq-blue font-bold text-xs">N</div>
+                <div className="absolute w-0.5 h-5 bg-civiq-blue top-1"></div>
+              </div>
             </div>
           </div>
           
           {/* Playback Controls */}
           <div className="flex items-center justify-center gap-4 mb-4">
-            {/* Stop Button */}
+            {/* Restart Button */}
             <button 
               className="w-10 h-10 rounded-full bg-gray-300 text-civiq-dark flex items-center justify-center hover:bg-gray-400 transition-all"
               onClick={handleStop}
-              title="Stop"
+              title="Restart Simulation"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M6 6h12v12H6z"/>
+                <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
               </svg>
             </button>
             
@@ -282,36 +381,35 @@ export default function SimulationDashboard() {
                 <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
               </svg>
             </button>
-            
-            {/* Reset Zoom */}
-            <button 
-              className="w-10 h-10 rounded-full bg-gray-300 text-civiq-dark flex items-center justify-center hover:bg-gray-400 transition-all"
-              onClick={() => {
-                setScale(1)
-                setPosition({ x: 0, y: 0 })
-              }}
-              title="Reset View"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
-              </svg>
-            </button>
           </div>
           
           {/* Progress Bar */}
-          <div className="mt-2">
+          <div className="mt-4 bg-gray-50 rounded-[20px] p-4 border border-gray-200">
+            <div className="flex items-center justify-between mb-2 text-sm font-medium">
+              <span className="text-civiq-dark">{formatTime(currentTime)}</span>
+              <span className="text-gray-500">Duration: {formatTime(duration)}</span>
+            </div>
             <div 
-              className="h-2 bg-gray-200 rounded-full overflow-hidden cursor-pointer hover:h-3 transition-all"
+              className="relative h-3 bg-gray-200 rounded-full overflow-hidden cursor-pointer group hover:h-4 transition-all shadow-inner"
               onClick={handleProgressClick}
             >
               <div 
-                className="h-full bg-civiq-purple transition-all"
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-civiq-purple to-civiq-blue transition-all rounded-full"
                 style={{ width: `${(currentTime / duration) * 100}%` }}
               />
+              {/* Playhead */}
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-civiq-purple rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ left: `calc(${(currentTime / duration) * 100}% - 8px)` }}
+              />
             </div>
-            <div className="flex items-center justify-between mt-1 text-xs text-gray-600">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+            <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+              <span className="flex items-center gap-1">
+                {isPlaying ? '▶' : '⏸'} {isPlaying ? 'Playing' : 'Paused'}
+              </span>
+              <span>
+                {Math.round((currentTime / duration) * 100)}% Complete
+              </span>
             </div>
           </div>
         </div>
