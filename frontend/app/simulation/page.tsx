@@ -33,12 +33,85 @@ export default function SimulationDashboard() {
   const searchParams = useSearchParams()
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
+  const [duration] = useState(119) // 1:59 in seconds
+  
+  // Pan and zoom state
+  const [scale, setScale] = useState(1)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   
   const mapSize = searchParams.get('mapSize') || ''
   const trafficScale = searchParams.get('trafficScale') || ''
   const view = searchParams.get('view') || ''
   const algorithm1 = searchParams.get('algorithm1') || ''
   const algorithm2 = searchParams.get('algorithm2') || ''
+
+  // Auto-update time when playing
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    if (isPlaying && currentTime < duration) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => {
+          if (prev >= duration) {
+            setIsPlaying(false)
+            return duration
+          }
+          return prev + 0.1
+        })
+      }, 100)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [isPlaying, currentTime, duration])
+
+  const handleStop = () => {
+    setIsPlaying(false)
+    setCurrentTime(0)
+  }
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percentage = x / rect.width
+    setCurrentTime(percentage * duration)
+  }
+
+  // Pan handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true)
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    })
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    })
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  // Zoom handler
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY * -0.001
+    const newScale = Math.min(Math.max(0.5, scale + delta), 3)
+    setScale(newScale)
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   return (
     <main className="w-full bg-gray-50 min-h-screen">
@@ -84,66 +157,124 @@ export default function SimulationDashboard() {
 
         {/* Map Visualization */}
         <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="aspect-video bg-gray-100 rounded-[20px] overflow-hidden mb-4 relative">
-            <img 
-              src="https://www.figma.com/api/mcp/asset/ba7168d7-379e-4206-8bc0-c8704ed27949" 
-              alt="Traffic Network Map" 
-              className="w-full h-full object-cover opacity-80"
-            />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-civiq-dark text-lg font-semibold bg-white/90 px-6 py-3 rounded-[20px]">
-                Simulation Visualization
-              </p>
+          <h3 className="font-bold text-civiq-dark text-[18px] mb-4">Simulation Player</h3>
+          
+          {/* Video Container */}
+          <div 
+            className="aspect-video bg-gray-100 rounded-[20px] overflow-hidden mb-4 relative cursor-move"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
+          >
+            <div 
+              className="w-full h-full"
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+              }}
+            >
+              <img 
+                src="https://www.figma.com/api/mcp/asset/ba7168d7-379e-4206-8bc0-c8704ed27949" 
+                alt="Traffic Network Map" 
+                className="w-full h-full object-cover opacity-90 select-none pointer-events-none"
+                draggable={false}
+              />
+            </div>
+            
+            {/* Zoom indicator */}
+            <div className="absolute top-4 right-4 bg-white/90 px-3 py-1.5 rounded-full text-xs font-semibold text-civiq-dark">
+              {Math.round(scale * 100)}%
+            </div>
+            
+            {/* Time overlay */}
+            <div className="absolute top-4 left-4 bg-white/90 px-3 py-1.5 rounded-full text-xs font-semibold text-civiq-dark">
+              {formatTime(currentTime)} / {formatTime(duration)}
             </div>
           </div>
           
           {/* Playback Controls */}
-          <div className="flex items-center justify-center gap-6">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            {/* Stop Button */}
+            <button 
+              className="w-10 h-10 rounded-full bg-gray-300 text-civiq-dark flex items-center justify-center hover:bg-gray-400 transition-all"
+              onClick={handleStop}
+              title="Stop"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 6h12v12H6z"/>
+              </svg>
+            </button>
+            
+            {/* Rewind Button */}
             <button 
               className="w-10 h-10 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all"
               onClick={() => setCurrentTime(Math.max(0, currentTime - 10))}
+              title="Rewind 10s"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
               </svg>
             </button>
             
+            {/* Play/Pause Button */}
             <button 
-              className="w-12 h-12 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-md"
+              className="w-14 h-14 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-md"
               onClick={() => setIsPlaying(!isPlaying)}
+              title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                 </svg>
               ) : (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
               )}
             </button>
             
+            {/* Forward Button */}
             <button 
               className="w-10 h-10 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all"
-              onClick={() => setCurrentTime(Math.min(119, currentTime + 10))}
+              onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))}
+              title="Forward 10s"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
               </svg>
             </button>
+            
+            {/* Reset Zoom */}
+            <button 
+              className="w-10 h-10 rounded-full bg-gray-300 text-civiq-dark flex items-center justify-center hover:bg-gray-400 transition-all"
+              onClick={() => {
+                setScale(1)
+                setPosition({ x: 0, y: 0 })
+              }}
+              title="Reset View"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+              </svg>
+            </button>
           </div>
           
           {/* Progress Bar */}
-          <div className="mt-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600 font-medium w-16">0:00</span>
-              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-civiq-purple transition-all duration-300"
-                  style={{ width: `${(currentTime / 119) * 100}%` }}
-                />
-              </div>
-              <span className="text-sm text-gray-600 font-medium w-16 text-right">1:59</span>
+          <div className="mt-2">
+            <div 
+              className="h-2 bg-gray-200 rounded-full overflow-hidden cursor-pointer hover:h-3 transition-all"
+              onClick={handleProgressClick}
+            >
+              <div 
+                className="h-full bg-civiq-purple transition-all"
+                style={{ width: `${(currentTime / duration) * 100}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-1 text-xs text-gray-600">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
             </div>
           </div>
         </div>
