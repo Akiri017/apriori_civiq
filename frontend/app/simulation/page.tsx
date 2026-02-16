@@ -31,16 +31,26 @@ const algorithmLabels: Record<string, string> = {
 
 export default function SimulationDashboard() {
   const searchParams = useSearchParams()
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(119) // Default 1:59, will be updated when video loads
   
-  // Pan and zoom state
-  const [scale, setScale] = useState(3)
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  // Video Player 1 state
+  const videoRef1 = useRef<HTMLVideoElement>(null)
+  const [isPlaying1, setIsPlaying1] = useState(false)
+  const [currentTime1, setCurrentTime1] = useState(0)
+  const [duration1, setDuration1] = useState(119)
+  const [scale1, setScale1] = useState(3)
+  const [position1, setPosition1] = useState({ x: 0, y: 0 })
+  const [isDragging1, setIsDragging1] = useState(false)
+  const [dragStart1, setDragStart1] = useState({ x: 0, y: 0 })
+  
+  // Video Player 2 state (for comparative mode)
+  const videoRef2 = useRef<HTMLVideoElement>(null)
+  const [isPlaying2, setIsPlaying2] = useState(false)
+  const [currentTime2, setCurrentTime2] = useState(0)
+  const [duration2, setDuration2] = useState(119)
+  const [scale2, setScale2] = useState(3)
+  const [position2, setPosition2] = useState({ x: 0, y: 0 })
+  const [isDragging2, setIsDragging2] = useState(false)
+  const [dragStart2, setDragStart2] = useState({ x: 0, y: 0 })
   
   const mapSize = searchParams.get('mapSize') || ''
   const trafficScale = searchParams.get('trafficScale') || ''
@@ -48,45 +58,54 @@ export default function SimulationDashboard() {
   const algorithm1 = searchParams.get('algorithm1') || ''
   const algorithm2 = searchParams.get('algorithm2') || ''
 
-  // Sync video playback with state
+  // Sync video playback with state - Player 1
   useEffect(() => {
-    if (!videoRef.current) return
+    if (!videoRef1.current) return
     
-    if (isPlaying) {
-      videoRef.current.play()
+    if (isPlaying1) {
+      videoRef1.current.play()
     } else {
-      videoRef.current.pause()
+      videoRef1.current.pause()
     }
-  }, [isPlaying])
+  }, [isPlaying1])
 
-  // Update duration when video metadata loads
+  // Sync video playback with state - Player 2
   useEffect(() => {
-    const video = videoRef.current
+    if (!videoRef2.current) return
+    
+    if (isPlaying2) {
+      videoRef2.current.play()
+    } else {
+      videoRef2.current.pause()
+    }
+  }, [isPlaying2])
+
+  // Update duration when video metadata loads - Player 1
+  useEffect(() => {
+    const video = videoRef1.current
     if (!video) return
 
     const handleLoadedMetadata = () => {
-      setDuration(video.duration || 119)
+      setDuration1(video.duration || 119)
     }
 
     const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime || 0)
+      setCurrentTime1(video.currentTime || 0)
     }
 
     const handleEnded = () => {
-      setIsPlaying(false)
-      setCurrentTime(video.duration || 0)
+      setIsPlaying1(false)
+      setCurrentTime1(video.duration || 0)
     }
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata)
     video.addEventListener('timeupdate', handleTimeUpdate)
     video.addEventListener('ended', handleEnded)
 
-    // Initialize duration if metadata is already loaded
     if (video.duration) {
-      setDuration(video.duration)
+      setDuration1(video.duration)
     }
     
-    // Ensure video is always muted
     video.volume = 0
     video.muted = true
 
@@ -97,60 +116,150 @@ export default function SimulationDashboard() {
     }
   }, [])
 
-  const handleStop = () => {
-    setIsPlaying(false)
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0
+  // Update duration when video metadata loads - Player 2
+  useEffect(() => {
+    const video = videoRef2.current
+    if (!video) return
+
+    const handleLoadedMetadata = () => {
+      setDuration2(video.duration || 119)
     }
-    setCurrentTime(0)
+
+    const handleTimeUpdate = () => {
+      setCurrentTime2(video.currentTime || 0)
+    }
+
+    const handleEnded = () => {
+      setIsPlaying2(false)
+      setCurrentTime2(video.duration || 0)
+    }
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata)
+    video.addEventListener('timeupdate', handleTimeUpdate)
+    video.addEventListener('ended', handleEnded)
+
+    if (video.duration) {
+      setDuration2(video.duration)
+    }
+    
+    video.volume = 0
+    video.muted = true
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      video.removeEventListener('timeupdate', handleTimeUpdate)
+      video.removeEventListener('ended', handleEnded)
+    }
+  }, [])
+
+  // Player 1 handlers
+  const handleStop1 = () => {
+    setIsPlaying1(false)
+    if (videoRef1.current) {
+      videoRef1.current.currentTime = 0
+    }
+    setCurrentTime1(0)
   }
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleProgressClick1 = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const percentage = x / rect.width
-    const newTime = percentage * duration
+    const newTime = percentage * duration1
     
-    if (videoRef.current) {
-      videoRef.current.currentTime = newTime
+    if (videoRef1.current) {
+      videoRef1.current.currentTime = newTime
     }
-    setCurrentTime(newTime)
+    setCurrentTime1(newTime)
   }
 
-  const handleSeek = (seconds: number) => {
-    if (!videoRef.current) return
-    const newTime = Math.max(0, Math.min(duration, videoRef.current.currentTime + seconds))
-    videoRef.current.currentTime = newTime
-    setCurrentTime(newTime)
+  const handleSeek1 = (seconds: number) => {
+    if (!videoRef1.current) return
+    const newTime = Math.max(0, Math.min(duration1, videoRef1.current.currentTime + seconds))
+    videoRef1.current.currentTime = newTime
+    setCurrentTime1(newTime)
   }
 
-  // Pan handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true)
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
+  const handleMouseDown1 = (e: React.MouseEvent) => {
+    setIsDragging1(true)
+    setDragStart1({
+      x: e.clientX - position1.x,
+      y: e.clientY - position1.y
     })
   }
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return
-    setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
+  const handleMouseMove1 = (e: React.MouseEvent) => {
+    if (!isDragging1) return
+    setPosition1({
+      x: e.clientX - dragStart1.x,
+      y: e.clientY - dragStart1.y
     })
   }
 
-  const handleMouseUp = () => {
-    setIsDragging(false)
+  const handleMouseUp1 = () => {
+    setIsDragging1(false)
   }
 
-  // Zoom handler
-  const handleWheel = (e: React.WheelEvent) => {
+  const handleWheel1 = (e: React.WheelEvent) => {
     e.preventDefault()
     const delta = e.deltaY * -0.001
-    const newScale = Math.min(Math.max(0.5, scale + delta), 3)
-    setScale(newScale)
+    const newScale = Math.min(Math.max(0.5, scale1 + delta), 3)
+    setScale1(newScale)
+  }
+
+  // Player 2 handlers
+  const handleStop2 = () => {
+    setIsPlaying2(false)
+    if (videoRef2.current) {
+      videoRef2.current.currentTime = 0
+    }
+    setCurrentTime2(0)
+  }
+
+  const handleProgressClick2 = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percentage = x / rect.width
+    const newTime = percentage * duration2
+    
+    if (videoRef2.current) {
+      videoRef2.current.currentTime = newTime
+    }
+    setCurrentTime2(newTime)
+  }
+
+  const handleSeek2 = (seconds: number) => {
+    if (!videoRef2.current) return
+    const newTime = Math.max(0, Math.min(duration2, videoRef2.current.currentTime + seconds))
+    videoRef2.current.currentTime = newTime
+    setCurrentTime2(newTime)
+  }
+
+  const handleMouseDown2 = (e: React.MouseEvent) => {
+    setIsDragging2(true)
+    setDragStart2({
+      x: e.clientX - position2.x,
+      y: e.clientY - position2.y
+    })
+  }
+
+  const handleMouseMove2 = (e: React.MouseEvent) => {
+    if (!isDragging2) return
+    setPosition2({
+      x: e.clientX - dragStart2.x,
+      y: e.clientY - dragStart2.y
+    })
+  }
+
+  const handleMouseUp2 = () => {
+    setIsDragging2(false)
+  }
+
+  const handleWheel2 = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY * -0.001
+    const newScale = Math.min(Math.max(0.5, scale2 + delta), 3)
+    setScale2(newScale)
   }
 
   const formatTime = (seconds: number) => {
@@ -158,6 +267,244 @@ export default function SimulationDashboard() {
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
+
+  // Render function for a single video player
+  const renderVideoPlayer = (
+    playerNum: number,
+    algorithm: string,
+    videoRef: React.RefObject<HTMLVideoElement>,
+    isPlaying: boolean,
+    setIsPlaying: (playing: boolean) => void,
+    currentTime: number,
+    duration: number,
+    scale: number,
+    setScale: (scale: number) => void,
+    position: { x: number; y: number },
+    setPosition: (pos: { x: number; y: number }) => void,
+    isDragging: boolean,
+    handleMouseDown: (e: React.MouseEvent) => void,
+    handleMouseMove: (e: React.MouseEvent) => void,
+    handleMouseUp: () => void,
+    handleWheel: (e: React.WheelEvent) => void,
+    handleStop: () => void,
+    handleSeek: (seconds: number) => void,
+    handleProgressClick: (e: React.MouseEvent<HTMLDivElement>) => void
+  ) => (
+    <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-8 mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="font-bold text-civiq-dark text-[20px]">
+          {view === 'comparative' ? algorithmLabels[algorithm] : 'Interactive Simulation Map'}
+        </h3>
+        <div className="flex items-center gap-4 text-xs text-gray-600">
+          <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
+              <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+            </svg>
+            Pan with mouse
+          </span>
+          <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 5v2m0 10v2m7-7h-2M5 12h2"/>
+            </svg>
+            Scroll to zoom
+          </span>
+        </div>
+      </div>
+      
+      {/* Video Container with Map Styling */}
+      <div className="relative">
+        <div 
+          className={`aspect-video bg-gray-900 rounded-[20px] overflow-hidden relative border-4 border-gray-300 shadow-lg ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.1)' }}
+        >
+          <div 
+            className="w-full h-full"
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+              transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+              transformOrigin: 'center center'
+            }}
+          >
+            <video
+              ref={videoRef}
+              src="/simulation.mp4"
+              className="w-full h-full object-contain select-none pointer-events-none"
+              draggable={false}
+              preload="metadata"
+              muted
+              playsInline
+            />
+          </div>
+          
+          {/* Map Grid Overlay */}
+          <div className="absolute inset-0 pointer-events-none" style={{
+            backgroundImage: `
+              linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
+            `,
+            backgroundSize: '50px 50px'
+          }} />
+          
+          {/* Top overlays */}
+          <div className="absolute top-4 left-4 right-4 flex items-start justify-between pointer-events-none">
+            {/* Time overlay */}
+            <div className="bg-civiq-dark/90 backdrop-blur-sm px-4 py-2 rounded-lg text-white font-mono text-sm shadow-lg border border-white/10">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </div>
+            </div>
+            
+            {/* Zoom indicator */}
+            <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg text-civiq-dark font-semibold text-sm shadow-lg border border-gray-200">
+              🔍 {Math.round(scale * 100)}%
+            </div>
+          </div>
+          
+          {/* Map Controls - Right side */}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 pointer-events-auto">
+            <button
+              className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all font-bold text-xl"
+              onClick={() => setScale(Math.min(3, scale + 0.25))}
+              title="Zoom In"
+            >
+              +
+            </button>
+            
+            <button
+              className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all font-bold text-xl"
+              onClick={() => setScale(Math.max(0.5, scale - 0.25))}
+              title="Zoom Out"
+            >
+              −
+            </button>
+            
+            <button
+              className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all"
+              onClick={() => {
+                setScale(1)
+                setPosition({ x: 0, y: 0 })
+              }}
+              title="Reset View"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+              </svg>
+            </button>
+            
+            <button
+              className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all"
+              onClick={() => {
+                setScale(1)
+                setPosition({ x: 0, y: 0 })
+              }}
+              title="Fit to Screen"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v4c0 1.1.9 2 2 2h4v-2H5v-4zm14 4h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5c0-1.1-.9-2-2-2z"/>
+              </svg>
+            </button>
+          </div>
+          
+          {/* Compass indicator */}
+          <div className="absolute bottom-4 left-4 w-12 h-12 bg-white/95 backdrop-blur-sm rounded-full shadow-lg border-2 border-gray-200 flex items-center justify-center pointer-events-none">
+            <div className="text-civiq-blue font-bold text-xs">N</div>
+            <div className="absolute w-0.5 h-5 bg-civiq-blue top-1"></div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Playback Controls */}
+      <div className="flex items-center justify-center gap-6 mt-6 mb-5"></div>
+      <div className="flex items-center justify-center gap-6 mt-6 mb-5">
+        <button 
+          className="w-11 h-11 rounded-full bg-gray-300 text-civiq-dark flex items-center justify-center hover:bg-gray-400 transition-all shadow-sm"
+          onClick={handleStop}
+          title="Restart Simulation"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+          </svg>
+        </button>
+        
+        <button 
+          className="w-11 h-11 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-sm"
+          onClick={() => handleSeek(-10)}
+          title="Rewind 10s"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
+          </svg>
+        </button>
+        
+        <button 
+          className="w-16 h-16 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-lg hover:shadow-xl"
+          onClick={() => setIsPlaying(!isPlaying)}
+          title={isPlaying ? 'Pause' : 'Play'}
+        >
+          {isPlaying ? (
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+            </svg>
+          ) : (
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          )}
+        </button>
+        
+        <button 
+          className="w-11 h-11 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-sm"
+          onClick={() => handleSeek(10)}
+          title="Forward 10s"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M 4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
+          </svg>
+        </button>
+      </div>
+      
+      {/* Progress Bar */}
+      <div className="bg-gray-50 rounded-[20px] p-5 border border-gray-200">
+        <div className="flex items-center justify-between mb-3 text-sm font-semibold">
+          <span className="text-civiq-dark">{formatTime(currentTime)}</span>
+          <span className="text-gray-500 text-xs">Duration: {formatTime(duration)}</span>
+        </div>
+        <div 
+          className="relative h-3 bg-gray-200 rounded-full overflow-hidden cursor-pointer group hover:h-4 transition-all shadow-inner"
+          onClick={handleProgressClick}
+        >
+          <div 
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-civiq-purple to-civiq-blue transition-all rounded-full"
+            style={{ width: `${(currentTime / duration) * 100}%` }}
+          />
+          <div 
+            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-civiq-purple rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ left: `calc(${(currentTime / duration) * 100}% - 8px)` }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
+          <span className="flex items-center gap-1.5 font-medium">
+            <span className={`${isPlaying ? 'text-green-500' : 'text-gray-400'}`}>
+              {isPlaying ? '▶' : '⏸'}
+            </span>
+            {isPlaying ? 'Playing' : 'Paused'}
+          </span>
+          <span className="font-medium">
+            {Math.round((currentTime / duration) * 100)}% Complete
+          </span>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <main className="w-full bg-gray-50 min-h-screen">
@@ -201,227 +548,80 @@ export default function SimulationDashboard() {
       {/* Main Content */}
       <div className="max-w-[1400px] mx-auto px-6 py-8">
 
-        {/* Map Visualization */}
-        <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-8 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-civiq-dark text-[20px]">Interactive Simulation Map</h3>
-            <div className="flex items-center gap-4 text-xs text-gray-600">
-              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
-                  <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
-                </svg>
-                Pan with mouse
-              </span>
-              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M12 5v2m0 10v2m7-7h-2M5 12h2"/>
-                </svg>
-                Scroll to zoom
-              </span>
-            </div>
-          </div>
-          
-          {/* Video Container with Map Styling */}
-          <div className="relative">
-            <div 
-              className={`aspect-video bg-gray-900 rounded-[20px] overflow-hidden relative border-4 border-gray-300 shadow-lg ${
-                isDragging ? 'cursor-grabbing' : 'cursor-grab'
-              }`}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              onWheel={handleWheel}
-              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.1)' }}
-            >
-              <div 
-                className="w-full h-full"
-                style={{
-                  transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                  transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-                  transformOrigin: 'center center'
-                }}
-              >
-                <video
-                  ref={videoRef}
-                  src="/simulation.mp4"
-                  className="w-full h-full object-contain select-none pointer-events-none"
-                  draggable={false}
-                  preload="metadata"
-                  muted
-                  playsInline
-                />
-              </div>
-              
-              {/* Map Grid Overlay */}
-              <div className="absolute inset-0 pointer-events-none" style={{
-                backgroundImage: `
-                  linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                  linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-                `,
-                backgroundSize: '50px 50px'
-              }} />
-              
-              {/* Top overlays */}
-              <div className="absolute top-4 left-4 right-4 flex items-start justify-between pointer-events-none">
-                {/* Time overlay */}
-                <div className="bg-civiq-dark/90 backdrop-blur-sm px-4 py-2 rounded-lg text-white font-mono text-sm shadow-lg border border-white/10">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </div>
-                </div>
-                
-                {/* Zoom indicator */}
-                <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg text-civiq-dark font-semibold text-sm shadow-lg border border-gray-200">
-                  🔍 {Math.round(scale * 100)}%
-                </div>
-              </div>
-              
-              {/* Map Controls - Right side */}
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 pointer-events-auto">
-                {/* Zoom In */}
-                <button
-                  className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all font-bold text-xl"
-                  onClick={() => setScale(Math.min(3, scale + 0.25))}
-                  title="Zoom In"
-                >
-                  +
-                </button>
-                
-                {/* Zoom Out */}
-                <button
-                  className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all font-bold text-xl"
-                  onClick={() => setScale(Math.max(0.5, scale - 0.25))}
-                  title="Zoom Out"
-                >
-                  −
-                </button>
-                
-                {/* Reset View */}
-                <button
-                  className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all"
-                  onClick={() => {
-                    setScale(1)
-                    setPosition({ x: 0, y: 0 })
-                  }}
-                  title="Reset View"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
-                  </svg>
-                </button>
-                
-                {/* Fit to Screen */}
-                <button
-                  className="w-10 h-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:bg-civiq-blue hover:text-white transition-all"
-                  onClick={() => {
-                    setScale(1)
-                    setPosition({ x: 0, y: 0 })
-                  }}
-                  title="Fit to Screen"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v4c0 1.1.9 2 2 2h4v-2H5v-4zm14 4h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5c0-1.1-.9-2-2-2z"/>
-                  </svg>
-                </button>
-              </div>
-              
-              {/* Compass indicator - Bottom left */}
-              <div className="absolute bottom-4 left-4 w-12 h-12 bg-white/95 backdrop-blur-sm rounded-full shadow-lg border-2 border-gray-200 flex items-center justify-center pointer-events-none">
-                <div className="text-civiq-blue font-bold text-xs">N</div>
-                <div className="absolute w-0.5 h-5 bg-civiq-blue top-1"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Playback Controls */}
-          <div className="flex items-center justify-center gap-6 mt-6 mb-5">
-            {/* Restart Button */}
-            <button 
-              className="w-11 h-11 rounded-full bg-gray-300 text-civiq-dark flex items-center justify-center hover:bg-gray-400 transition-all shadow-sm"
-              onClick={handleStop}
-              title="Restart Simulation"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-              </svg>
-            </button>
+        {/* Map Visualization - Conditional Rendering based on View Mode */}
+        {view === 'comparative' ? (
+          // Comparative Mode - Two Players Side by Side
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            {renderVideoPlayer(
+              1,
+              algorithm1,
+              videoRef1,
+              isPlaying1,
+              setIsPlaying1,
+              currentTime1,
+              duration1,
+              scale1,
+              setScale1,
+              position1,
+              setPosition1,
+              isDragging1,
+              handleMouseDown1,
+              handleMouseMove1,
+              handleMouseUp1,
+              handleWheel1,
+              handleStop1,
+              handleSeek1,
+              handleProgressClick1
+            )}
             
-            {/* Rewind Button */}
-            <button 
-              className="w-11 h-11 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-sm"
-              onClick={() => handleSeek(-10)}
-              title="Rewind 10s"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
-              </svg>
-            </button>
-            
-            {/* Play/Pause Button */}
-            <button 
-              className="w-16 h-16 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-lg hover:shadow-xl"
-              onClick={() => setIsPlaying(!isPlaying)}
-              title={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                </svg>
-              ) : (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              )}
-            </button>
-            
-            {/* Forward Button */}
-            <button 
-              className="w-11 h-11 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-sm"
-              onClick={() => handleSeek(10)}
-              title="Forward 10s"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
-              </svg>
-            </button>
+            {renderVideoPlayer(
+              2,
+              algorithm2,
+              videoRef2,
+              isPlaying2,
+              setIsPlaying2,
+              currentTime2,
+              duration2,
+              scale2,
+              setScale2,
+              position2,
+              setPosition2,
+              isDragging2,
+              handleMouseDown2,
+              handleMouseMove2,
+              handleMouseUp2,
+              handleWheel2,
+              handleStop2,
+              handleSeek2,
+              handleProgressClick2
+            )}
           </div>
-          
-          {/* Progress Bar */}
-          <div className="bg-gray-50 rounded-[20px] p-5 border border-gray-200">
-            <div className="flex items-center justify-between mb-3 text-sm font-semibold">
-              <span className="text-civiq-dark">{formatTime(currentTime)}</span>
-              <span className="text-gray-500 text-xs">Duration: {formatTime(duration)}</span>
-            </div>
-            <div 
-              className="relative h-3 bg-gray-200 rounded-full overflow-hidden cursor-pointer group hover:h-4 transition-all shadow-inner"
-              onClick={handleProgressClick}
-            >
-              <div 
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-civiq-purple to-civiq-blue transition-all rounded-full"
-                style={{ width: `${(currentTime / duration) * 100}%` }}
-              />
-              {/* Playhead */}
-              <div 
-                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-civiq-purple rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ left: `calc(${(currentTime / duration) * 100}% - 8px)` }}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
-              <span className="flex items-center gap-1.5 font-medium">
-                <span className={`${isPlaying ? 'text-green-500' : 'text-gray-400'}`}>
-                  {isPlaying ? '▶' : '⏸'}
-                </span>
-                {isPlaying ? 'Playing' : 'Paused'}
-              </span>
-              <span className="font-medium">
-                {Math.round((currentTime / duration) * 100)}% Complete
-              </span>
-            </div>
+        ) : (
+          // Focused Mode - Single Player
+          <div className="mb-6">
+            {renderVideoPlayer(
+              1,
+              algorithm1,
+              videoRef1,
+              isPlaying1,
+              setIsPlaying1,
+              currentTime1,
+              duration1,
+              scale1,
+              setScale1,
+              position1,
+              setPosition1,
+              isDragging1,
+              handleMouseDown1,
+              handleMouseMove1,
+              handleMouseUp1,
+              handleWheel1,
+              handleStop1,
+              handleSeek1,
+              handleProgressClick1
+            )}
           </div>
-        </div>
+        )}
 
         {/* Simulation Metrics */}
         <h2 className="font-bold text-civiq-dark text-[24px] mb-6">Simulation Metrics</h2>
