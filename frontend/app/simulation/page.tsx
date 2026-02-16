@@ -1,0 +1,358 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Header } from '@/components/Header'
+import { SimulationControls } from '@/components/SimulationControls'
+import { Footer } from '@/components/Footer'
+
+const mapSizeLabels: Record<string, string> = {
+  '2km': '2 km²',
+  '0.75km': '0.75 km²',
+  '4x4': '4x4 Grid (2.25 km²)'
+}
+
+const trafficScaleLabels: Record<string, string> = {
+  'free_flow': 'Free Flow (LOS A)',
+  'stable_flow': 'Stable Flow (LOS C)',
+  'forced_flow': 'Forced Flow (LOS E)'
+}
+
+const viewLabels: Record<string, string> = {
+  'focused': 'Focused',
+  'comparative': 'Comparative'
+}
+
+const algorithmLabels: Record<string, string> = {
+  'selfish_routing': 'Selfish Routing',
+  'monolithic_qmix': 'Monolithic QMIX',
+  'hierarchical_qmix': 'Hierarchical QMIX (Civiq)'
+}
+
+export default function SimulationDashboard() {
+  const searchParams = useSearchParams()
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  
+  const mapSize = searchParams.get('mapSize') || ''
+  const trafficScale = searchParams.get('trafficScale') || ''
+  const view = searchParams.get('view') || ''
+  const algorithm1 = searchParams.get('algorithm1') || ''
+  const algorithm2 = searchParams.get('algorithm2') || ''
+
+  return (
+    <main className="w-full bg-gray-50 min-h-screen">
+      <Header />
+      
+      {/* Hero Section with Title and Simulation Controls */}
+      <section className="relative w-full pt-10 pb-10 bg-gray-50">
+        {/* Background Image */}
+        <div className="absolute inset-0 opacity-40 pointer-events-none overflow-hidden">
+          <img 
+            alt="" 
+            className="absolute h-[142.97%] left-0 max-w-none top-[-43.02%] w-[116.79%]" 
+            src="https://www.figma.com/api/mcp/asset/5608de9b-06dd-4684-a0da-f76a2c904f0d" 
+          />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-[1400px] mx-auto px-6">
+          {/* Title */}
+          <div className="text-center mb-12">
+            <h1 className="font-bold text-civiq-dark text-[52px] leading-tight">
+              Civiq
+            </h1>
+            <div className="font-italic text-civiq-blue text-[28px] mt-4 leading-tight">
+              <p className="mb-0">A Hierarchical Multi-Agent Coordination Framework</p>
+              <p>using QMIX for Urban Optimization</p>
+            </div>
+          </div>
+
+          {/* Simulation Controls */}
+          <SimulationControls 
+            initialMapSize={mapSize}
+            initialTrafficScale={trafficScale}
+            initialView={view}
+            initialAlgorithm1={algorithm1}
+            initialAlgorithm2={algorithm2}
+          />
+        </div>
+      </section>
+      
+      {/* Main Content */}
+      <div className="max-w-[1400px] mx-auto px-6 py-8">
+
+        {/* Map Visualization */}
+        <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="aspect-video bg-gray-100 rounded-[20px] overflow-hidden mb-4 relative">
+            <img 
+              src="https://www.figma.com/api/mcp/asset/ba7168d7-379e-4206-8bc0-c8704ed27949" 
+              alt="Traffic Network Map" 
+              className="w-full h-full object-cover opacity-80"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="text-civiq-dark text-lg font-semibold bg-white/90 px-6 py-3 rounded-[20px]">
+                Simulation Visualization
+              </p>
+            </div>
+          </div>
+          
+          {/* Playback Controls */}
+          <div className="flex items-center justify-center gap-6">
+            <button 
+              className="w-10 h-10 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all"
+              onClick={() => setCurrentTime(Math.max(0, currentTime - 10))}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
+              </svg>
+            </button>
+            
+            <button 
+              className="w-12 h-12 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-md"
+              onClick={() => setIsPlaying(!isPlaying)}
+            >
+              {isPlaying ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              )}
+            </button>
+            
+            <button 
+              className="w-10 h-10 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all"
+              onClick={() => setCurrentTime(Math.min(119, currentTime + 10))}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
+              </svg>
+            </button>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="mt-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600 font-medium w-16">0:00</span>
+              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-civiq-purple transition-all duration-300"
+                  style={{ width: `${(currentTime / 119) * 100}%` }}
+                />
+              </div>
+              <span className="text-sm text-gray-600 font-medium w-16 text-right">1:59</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Simulation Metrics */}
+        <h2 className="font-bold text-civiq-dark text-[24px] mb-6">Simulation Metrics</h2>
+        
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          {/* Average Travel Time */}
+          <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-civiq-dark text-[18px]">Average Travel Time (ATT)</h3>
+              <div className="w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
+                i
+              </div>
+            </div>
+            <div className="flex items-end gap-3">
+              <p className="text-[48px] font-bold text-civiq-blue">4.2</p>
+              <p className="text-gray-500 mb-3">min/km</p>
+            </div>
+            <div className="h-24 flex items-end">
+              <svg className="w-full h-full" viewBox="0 0 200 60">
+                <polyline 
+                  points="0,50 40,45 80,40 120,35 160,25 200,20" 
+                  fill="none" 
+                  stroke="#10b981" 
+                  strokeWidth="2"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Learning Convergence */}
+          <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-civiq-dark text-[18px]">Learning Convergence</h3>
+              <div className="w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
+                i
+              </div>
+            </div>
+            <div className="h-32 bg-gradient-to-t from-blue-200 to-transparent opacity-50 rounded-lg" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          {/* Average Waiting Time */}
+          <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-civiq-dark text-[18px]">Average Waiting Time</h3>
+              <div className="w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
+                i
+              </div>
+            </div>
+            <div className="flex items-end gap-3">
+              <p className="text-[48px] font-bold text-civiq-blue">18.5</p>
+              <p className="text-gray-500 mb-3">sec/km</p>
+            </div>
+            <div className="h-24 flex items-end">
+              <svg className="w-full h-full" viewBox="0 0 200 60">
+                <polyline 
+                  points="0,40 40,35 80,30 120,28 160,22 200,18" 
+                  fill="none" 
+                  stroke="#10b981" 
+                  strokeWidth="2"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Traffic Wave Pattern */}
+          <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-civiq-dark text-[18px]">Traffic Wave Pattern</h3>
+              <div className="w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
+                i
+              </div>
+            </div>
+            <div className="h-32 flex items-center justify-center">
+              <svg className="w-full h-full" viewBox="0 0 200 80">
+                <polyline 
+                  points="0,40 30,35 60,30 90,28 120,32 150,38 180,35 200,30" 
+                  fill="none" 
+                  stroke="#ef4444" 
+                  strokeWidth="2"
+                  strokeDasharray="4 4"
+                />
+                <polyline 
+                  points="0,45 30,42 60,38 90,36 120,40 150,45 180,42 200,38" 
+                  fill="none" 
+                  stroke="#3b82f6" 
+                  strokeWidth="2"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          {/* Network Throughput */}
+          <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-civiq-dark text-[18px]">Network Throughput</h3>
+              <div className="w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
+                i
+              </div>
+            </div>
+            <div className="flex items-end gap-3">
+              <p className="text-[48px] font-bold text-civiq-blue">1,875</p>
+              <p className="text-gray-500 mb-3">veh/km</p>
+            </div>
+            <div className="h-24 flex items-end">
+              <svg className="w-full h-full" viewBox="0 0 200 60">
+                <polyline 
+                  points="0,50 40,48 80,45 120,42 160,38 200,35" 
+                  fill="none" 
+                  stroke="#10b981" 
+                  strokeWidth="2"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Real-Time Factor */}
+          <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-civiq-dark text-[18px]">Real-Time Factor</h3>
+              <div className="w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
+                i
+              </div>
+            </div>
+            <div className="flex items-end gap-3">
+              <p className="text-[48px] font-bold text-civiq-blue">1.5x</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          {/* Network Pressure Mapping */}
+          <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-civiq-dark text-[18px]">Network Pressure Mapping</h3>
+              <div className="w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
+                i
+              </div>
+            </div>
+            <div className="aspect-square bg-gradient-to-br from-yellow-200 via-orange-300 to-red-400 rounded-[20px] relative overflow-hidden">
+              <img 
+                src="https://www.figma.com/api/mcp/asset/ba7168d7-379e-4206-8bc0-c8704ed27949" 
+                alt="Heatmap" 
+                className="w-full h-full object-cover opacity-70"
+              />
+            </div>
+          </div>
+
+          {/* Compute Time & Emissions */}
+          <div className="flex flex-col gap-6">
+            {/* Average Compute Time */}
+            <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-bold text-civiq-dark text-[16px]">Average Compute Time</h3>
+                    <div className="w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
+                      i
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[32px] font-bold text-civiq-blue">22.35 ms</p>
+              </div>
+            </div>
+
+            {/* CO2 Emissions */}
+            <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6 flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="relative w-32 h-32 mx-auto mb-3">
+                  <svg className="w-full h-full -rotate-90">
+                    <circle 
+                      cx="64" 
+                      cy="64" 
+                      r="56" 
+                      fill="none" 
+                      stroke="#e5e7eb" 
+                      strokeWidth="12"
+                    />
+                    <circle 
+                      cx="64" 
+                      cy="64" 
+                      r="56" 
+                      fill="none" 
+                      stroke="#10b981" 
+                      strokeWidth="12"
+                      strokeDasharray="352"
+                      strokeDashoffset="88"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="text-[40px] font-bold text-civiq-dark">142</p>
+                    <p className="text-sm text-gray-600">g/km</p>
+                  </div>
+                </div>
+                <p className="text-xs italic text-gray-600">Average CO2 Emissions per kilometer</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </main>
+  )
+}

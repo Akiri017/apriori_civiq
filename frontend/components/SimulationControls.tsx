@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from './Button'
 import { IconChevronDown } from './icons'
 
@@ -83,9 +84,24 @@ const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: Drop
   )
 }
 
-export const SimulationControls = () => {
-  const [mapSize, setMapSize] = useState('')
-  const [trafficScale, setTrafficScale] = useState('')
+interface SimulationControlsProps {
+  initialMapSize?: string
+  initialTrafficScale?: string
+  initialView?: string
+  initialAlgorithm1?: string
+  initialAlgorithm2?: string
+}
+
+export const SimulationControls = ({
+  initialMapSize = '',
+  initialTrafficScale = '',
+  initialView = '',
+  initialAlgorithm1 = '',
+  initialAlgorithm2 = ''
+}: SimulationControlsProps = {}) => {
+  const router = useRouter()
+  const [mapSize, setMapSize] = useState(initialMapSize)
+  const [trafficScale, setTrafficScale] = useState(initialTrafficScale)
   const [view, setView] = useState('')
   const [algorithm1, setAlgorithm1] = useState('')
   const [algorithm2, setAlgorithm2] = useState('')
@@ -96,11 +112,33 @@ export const SimulationControls = () => {
     setOpenDropdown(openDropdown === name ? null : name)
   }
 
-  // Reset algorithm selections when view changes
+  const handleRunSimulation = () => {
+    const params = new URLSearchParams()
+    if (mapSize) params.set('mapSize', mapSize)
+    if (trafficScale) params.set('trafficScale', trafficScale)
+    if (view) params.set('view', view)
+    if (algorithm1) params.set('algorithm1', algorithm1)
+    if (algorithm2) params.set('algorithm2', algorithm2)
+    
+    router.push(`/simulation?${params.toString()}`)
+  }
+
+  // Sync with initial values when they change
   useEffect(() => {
-    setAlgorithm1('')
-    setAlgorithm2('')
-  }, [view])
+    if (initialMapSize) setMapSize(initialMapSize)
+    if (initialTrafficScale) setTrafficScale(initialTrafficScale)
+    if (initialView) setView(initialView)
+    if (initialAlgorithm1) setAlgorithm1(initialAlgorithm1)
+    if (initialAlgorithm2) setAlgorithm2(initialAlgorithm2)
+  }, [initialMapSize, initialTrafficScale, initialView, initialAlgorithm1, initialAlgorithm2])
+
+  // Reset algorithm selections when view changes (but not on initial load)
+  useEffect(() => {
+    if (!initialView) {
+      setAlgorithm1('')
+      setAlgorithm2('')
+    }
+  }, [view, initialView])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -161,7 +199,9 @@ export const SimulationControls = () => {
           />
 
           {/* Run Simulation */}
-          <Button variant="primary" fullWidth>Run Simulation</Button>
+          <Button variant="primary" fullWidth onPress={handleRunSimulation}>
+            Run Simulation
+          </Button>
         </div>
       </div>
 
@@ -171,7 +211,7 @@ export const SimulationControls = () => {
           {/* First Algorithm Option */}
           <Dropdown
             label={view === 'comparative' ? 'Algorithm 1' : 'Algorithm Selection'}
-            options={algorithmOptions}
+            options={view === 'comparative' ? algorithmOptions.filter(opt => opt.value !== algorithm2) : algorithmOptions}
             selected={algorithm1}
             onSelect={setAlgorithm1}
             isOpen={openDropdown === 'algorithm1'}
@@ -182,7 +222,7 @@ export const SimulationControls = () => {
           {view === 'comparative' && (
             <Dropdown
               label="Algorithm 2"
-              options={algorithmOptions}
+              options={algorithmOptions.filter(opt => opt.value !== algorithm1)}
               selected={algorithm2}
               onSelect={setAlgorithm2}
               isOpen={openDropdown === 'algorithm2'}
