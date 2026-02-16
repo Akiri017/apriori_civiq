@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { SimulationControls } from '@/components/SimulationControls'
@@ -31,9 +31,10 @@ const algorithmLabels: Record<string, string> = {
 
 export default function SimulationDashboard() {
   const searchParams = useSearchParams()
+  const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
-  const [duration] = useState(119) // 1:59 in seconds
+  const [duration, setDuration] = useState(119) // Default 1:59, will be updated when video loads
   
   // Pan and zoom state
   const [scale, setScale] = useState(1)
@@ -47,27 +48,50 @@ export default function SimulationDashboard() {
   const algorithm1 = searchParams.get('algorithm1') || ''
   const algorithm2 = searchParams.get('algorithm2') || ''
 
-  // Auto-update time when playing
+  // Sync video playback with state
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-    if (isPlaying && currentTime < duration) {
-      interval = setInterval(() => {
-        setCurrentTime(prev => {
-          if (prev >= duration) {
-            setIsPlaying(false)
-            return duration
-          }
-          return prev + 0.1
-        })
-      }, 100)
+    if (!videoRef.current) return
+    
+    if (isPlaying) {
+      videoRef.current.play()
+    } else {
+      videoRef.current.pause()
     }
+  }, [isPlaying])
+
+  // Update duration when video metadata loads
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration)
+    }
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime)
+    }
+
+    const handleEnded = () => {
+      setIsPlaying(false)
+    }
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata)
+    video.addEventListener('timeupdate', handleTimeUpdate)
+    video.addEventListener('ended', handleEnded)
+
     return () => {
-      if (interval) clearInterval(interval)
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      video.removeEventListener('timeupdate', handleTimeUpdate)
+      video.removeEventListener('ended', handleEnded)
     }
-  }, [isPlaying, currentTime, duration])
+  }, [])
 
   const handleStop = () => {
     setIsPlaying(false)
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0
+    }
     setCurrentTime(0)
   }
 
@@ -75,7 +99,19 @@ export default function SimulationDashboard() {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const percentage = x / rect.width
-    setCurrentTime(percentage * duration)
+    const newTime = percentage * duration
+    
+    if (videoRef.current) {
+      videoRef.current.currentTime = newTime
+    }
+    setCurrentTime(newTime)
+  }
+
+  const handleSeek = (seconds: number) => {
+    if (!videoRef.current) return
+    const newTime = Math.max(0, Math.min(duration, videoRef.current.currentTime + seconds))
+    videoRef.current.currentTime = newTime
+    setCurrentTime(newTime)
   }
 
   // Pan handlers
@@ -175,11 +211,12 @@ export default function SimulationDashboard() {
                 transition: isDragging ? 'none' : 'transform 0.1s ease-out'
               }}
             >
-              <img 
-                src="https://www.figma.com/api/mcp/asset/ba7168d7-379e-4206-8bc0-c8704ed27949" 
-                alt="Traffic Network Map" 
-                className="w-full h-full object-cover opacity-90 select-none pointer-events-none"
+              <video
+                ref={videoRef}
+                src="/simulation.mp4"
+                className="w-full h-full object-cover select-none pointer-events-none"
                 draggable={false}
+                preload="metadata"
               />
             </div>
             
@@ -210,7 +247,7 @@ export default function SimulationDashboard() {
             {/* Rewind Button */}
             <button 
               className="w-10 h-10 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all"
-              onClick={() => setCurrentTime(Math.max(0, currentTime - 10))}
+              onClick={() => handleSeek(-10)}
               title="Rewind 10s"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -238,7 +275,7 @@ export default function SimulationDashboard() {
             {/* Forward Button */}
             <button 
               className="w-10 h-10 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all"
-              onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))}
+              onClick={() => handleSeek(10)}
               title="Forward 10s"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
