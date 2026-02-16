@@ -26,6 +26,12 @@ const viewOptions: DropdownOption[] = [
   { label: 'Comparative', value: 'comparative' },
 ]
 
+const algorithmOptions: DropdownOption[] = [
+  { label: 'Selfish Routing', value: 'selfish_routing' },
+  { label: 'Monolithic QMIX', value: 'monolithic_qmix' },
+  { label: 'Hierarchical QMIX (Civiq)', value: 'hierarchical_qmix' },
+]
+
 interface DropdownProps {
   label: string
   options: DropdownOption[]
@@ -81,12 +87,20 @@ export const SimulationControls = () => {
   const [mapSize, setMapSize] = useState('')
   const [trafficScale, setTrafficScale] = useState('')
   const [view, setView] = useState('')
+  const [algorithm1, setAlgorithm1] = useState('')
+  const [algorithm2, setAlgorithm2] = useState('')
   
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
   const toggleDropdown = (name: string) => {
     setOpenDropdown(openDropdown === name ? null : name)
   }
+
+  // Reset algorithm selections when view changes
+  useEffect(() => {
+    setAlgorithm1('')
+    setAlgorithm2('')
+  }, [view])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -155,23 +169,25 @@ export const SimulationControls = () => {
       {view && (
         <div className={`grid ${view === 'comparative' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
           {/* First Algorithm Option */}
-          <div className="bg-white rounded-[30px] shadow-sm px-5 py-3.5 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
-            <div className="flex items-center justify-between">
-              <p className="font-semibold text-civiq-blue text-[15px]">
-                {view === 'comparative' ? 'Monolithic QMIX' : 'Algorithm Selection'}
-              </p>
-              <IconChevronDown size={20} className="text-civiq-blue" />
-            </div>
-          </div>
+          <Dropdown
+            label={view === 'comparative' ? 'Algorithm 1' : 'Algorithm Selection'}
+            options={algorithmOptions}
+            selected={algorithm1}
+            onSelect={setAlgorithm1}
+            isOpen={openDropdown === 'algorithm1'}
+            onToggle={() => toggleDropdown('algorithm1')}
+          />
 
           {/* Second Algorithm Option - Only for Comparative View */}
           {view === 'comparative' && (
-            <div className="bg-white rounded-[30px] shadow-sm px-5 py-3.5 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-civiq-blue text-[15px]">Hierarchical QMIX (Civiq)</p>
-                <IconChevronDown size={20} className="text-civiq-blue" />
-              </div>
-            </div>
+            <Dropdown
+              label="Algorithm 2"
+              options={algorithmOptions}
+              selected={algorithm2}
+              onSelect={setAlgorithm2}
+              isOpen={openDropdown === 'algorithm2'}
+              onToggle={() => toggleDropdown('algorithm2')}
+            />
           )}
         </div>
       )}
