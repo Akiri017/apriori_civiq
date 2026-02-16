@@ -73,8 +73,8 @@ export const AboutSection = () => {
     <div className="w-full space-y-16">
       {/* About Civiq */}
       <div>
-        <h2 className="font-bold text-civiq-purple text-[36px] mb-6">About Civiq</h2>
-        <p className="text-civiq-dark text-[16px] text-justify leading-relaxed">
+        <h2 className="font-bold text-civiq-purple text-[42px] mb-6">About Civiq</h2>
+        <p className="text-civiq-dark text-[18px] text-justify leading-relaxed">
           Civiq is a hierarchical software framework designed to redefine urban traffic management
           through cooperative intelligence. Built around the QMIX algorithm, Civiq addresses the
           scalability challenges of traditional Multi-Agent Reinforcement Learning (MARL) by utilizing
@@ -87,7 +87,7 @@ export const AboutSection = () => {
 
       {/* Smart Traffic Routing */}
       <div>
-        <h2 className="font-bold text-civiq-purple text-[36px] mb-8">Smart Traffic Routing, Scalable</h2>
+        <h2 className="font-bold text-civiq-purple text-[42px] mb-8">Smart Traffic Routing, Scalable</h2>
         
         <div className="grid grid-cols-2 gap-8">
           {/* Left: Metrics */}
@@ -100,10 +100,10 @@ export const AboutSection = () => {
             >
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2">
-                  <p className="text-civiq-blue text-[13px] font-medium">Average Compute Time</p>
+                  <p className="text-civiq-blue text-[15px] font-medium">Average Compute Time</p>
                   <IconAlertCircle size={16} />
                 </div>
-                <p className="font-bold text-civiq-dark text-[32px] ml-auto">22.35 ms</p>
+                <p className="font-bold text-civiq-dark text-[36px] ml-auto">22.35 ms</p>
               </div>
               
               {/* Tooltip */}
@@ -123,14 +123,14 @@ export const AboutSection = () => {
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="text-civiq-blue text-[13px] font-medium">Average Travel Time (ATT)</p>
+                    <p className="text-civiq-blue text-[15px] font-medium">Average Travel Time (ATT)</p>
                     <IconAlertCircle size={16} />
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <p className="font-bold text-civiq-dark text-[32px]">4.2</p>
-                    <p className="text-civiq-dark text-[13px]">min</p>
+                    <p className="font-bold text-civiq-dark text-[36px]">4.2</p>
+                    <p className="text-civiq-dark text-[15px]">min</p>
                     <img alt="Arrow" src="http://localhost:3845/assets/45b728e1f2bff40b5bec0c72fae372cd901faff5.svg" className="w-3 h-3 mx-1" />
-                    <p className="text-civiq-green text-[13px]">+12.34%</p>
+                    <p className="text-civiq-green text-[15px]">+12.34%</p>
                   </div>
                 </div>
                 <LineChart data={[2, 3, 2.5, 4, 3.5, 5, 4, 4.2]} />
@@ -153,12 +153,12 @@ export const AboutSection = () => {
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="text-civiq-blue text-[13px] font-medium">Network Throughput</p>
+                    <p className="text-civiq-blue text-[15px] font-medium">Network Throughput</p>
                     <IconAlertCircle size={16} />
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <p className="font-bold text-civiq-dark text-[32px]">1,875</p>
-                    <p className="text-civiq-dark text-[13px]">veh/hr</p>
+                    <p className="font-bold text-civiq-dark text-[36px]">1,875</p>
+                    <p className="text-civiq-dark text-[15px]">veh/hr</p>
                     <img alt="Arrow" src="http://localhost:3845/assets/45b728e1f2bff40b5bec0c72fae372cd901faff5.svg" className="w-3 h-3 mx-1" />
                     <p className="text-civiq-green text-[13px]">+8.32%</p>
                   </div>
@@ -177,7 +177,7 @@ export const AboutSection = () => {
 
           {/* Right: Description */}
           <div className="bg-[#f6f6f6] rounded-[24px] shadow-md p-6">
-            <p className="text-civiq-dark text-[16px] text-justify leading-relaxed">
+            <p className="text-civiq-dark text-[18px] text-justify leading-relaxed">
               Civiq transforms congested urban traffic into a coordinated and efficient network by
               enabling vehicles to operate cooperatively rather than competitively. By distributing
               processing tasks between intelligent roadside sensors and a centralized optimization
@@ -194,12 +194,12 @@ export const AboutSection = () => {
 
       {/* Green Edge Computing */}
       <div>
-        <h2 className="font-bold text-civiq-purple text-[36px] mb-8">Green Edge Computing</h2>
+        <h2 className="font-bold text-civiq-purple text-[42px] mb-8">Green Edge Computing</h2>
         
         <div className="grid grid-cols-2 gap-8">
           {/* Left: Description */}
           <div className="bg-[#f6f6f6] rounded-[24px] shadow-md p-6 space-y-4">
-            <p className="text-civiq-dark text-[16px] text-justify leading-relaxed">
+            <p className="text-civiq-dark text-[18px] text-justify leading-relaxed">
               Civiq improves urban sustainability by applying Green Edge Computing to traffic management
               at the point where traffic occurs. Instead of transmitting all data to a centralized data
               center, the system uses intelligent edge devices installed at each intersection to make
@@ -224,10 +224,10 @@ export const AboutSection = () => {
               <div className="flex items-center gap-6">
                 <CircleMetric value={142} max={500} size="xxlarge" />
                 <div className="flex-1">
-                  <p className="text-civiq-blue text-[13px] font-medium mb-2">Average CO2 Emissions</p>
+                  <p className="text-civiq-blue text-[15px] font-medium mb-2">Average CO2 Emissions</p>
                   <div className="flex items-baseline gap-1">
-                    <p className="font-bold text-civiq-dark text-[32px]">142</p>
-                    <p className="text-civiq-dark text-[13px]">g/km</p>
+                    <p className="font-bold text-civiq-dark text-[36px]">142</p>
+                    <p className="text-civiq-dark text-[15px]">g/km</p>
                   </div>
                 </div>
               </div>
@@ -238,10 +238,10 @@ export const AboutSection = () => {
               <div className="flex items-center gap-6">
                 <CircleMetric value={23} max={40} size="xxlarge" />
                 <div className="flex-1">
-                  <p className="text-civiq-blue text-[13px] font-medium mb-2">Average Fuel Consumption</p>
+                  <p className="text-civiq-blue text-[15px] font-medium mb-2">Average Fuel Consumption</p>
                   <div className="flex items-baseline gap-1">
-                    <p className="font-bold text-civiq-dark text-[32px]">23</p>
-                    <p className="text-civiq-dark text-[13px]">g/km</p>
+                    <p className="font-bold text-civiq-dark text-[36px]">23</p>
+                    <p className="text-civiq-dark text-[15px]">g/km</p>
                   </div>
                 </div>
               </div>
