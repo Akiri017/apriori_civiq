@@ -57,10 +57,9 @@ const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: Drop
         <p className={`font-semibold text-[15px] ${selectedOption ? 'text-civiq-blue' : 'text-gray-500'}`}>
           {displayText}
         </p>
-        <IconChevronDown 
-          size={20} 
-          className={`transition-transform ${selectedOption ? 'text-civiq-blue' : 'text-gray-400'} ${isOpen ? 'rotate-180' : ''}`} 
-        />
+        <div className={`transition-transform ${selectedOption ? 'text-civiq-blue' : 'text-gray-400'} ${isOpen ? 'rotate-180' : ''}`}>
+          <IconChevronDown size={20} />
+        </div>
       </div>
       
       {isOpen && (
@@ -161,7 +160,7 @@ export const SimulationControls = ({
     <div className="w-full">
       {/* Title */}
       <h2 className="font-bold text-civiq-dark text-[18px] mb-3 flex items-center gap-2">
-        <img alt="Icon" src="http://localhost:3845/assets/0d6c25a108d6d37b7161f5d7e9f9725c00cc2801.png" className="w-5 h-5" />
+        <img alt="Simulation Controls Icon" src="/icons/simulation_controls.svg" className="w-5 h-5" style={{filter: 'invert(1) hue-rotate(210deg) brightness(0.9) saturate(1.5)'}} />
         Simulation Controls
       </h2>
 

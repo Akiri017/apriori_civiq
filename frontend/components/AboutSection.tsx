@@ -101,17 +101,17 @@ export const AboutSection = () => {
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2">
                   <p className="text-civiq-blue text-[15px] font-medium">Average Compute Time</p>
-                  <IconAlertCircle size={16} />
+                  <div className="relative">
+                    <IconAlertCircle size={16} />
+                    {hoveredTooltip === 'act' && (
+                      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-civiq-dark text-white text-[12px] font-semibold px-3 py-2 rounded-lg whitespace-nowrap z-10 shadow-lg">
+                        Time taken to compute optimal routing decisions
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <p className="font-bold text-civiq-dark text-[36px] ml-auto">22.35 ms</p>
               </div>
-              
-              {/* Tooltip */}
-              {hoveredTooltip === 'act' && (
-                <div className="absolute left-0 bottom-full mb-2 bg-civiq-dark text-white text-[12px] px-3 py-2 rounded-lg whitespace-nowrap z-10 shadow-lg">
-                  Time taken to compute optimal routing decisions
-                </div>
-              )}
             </div>
 
             {/* ATT */}
@@ -124,24 +124,24 @@ export const AboutSection = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-civiq-blue text-[15px] font-medium">Average Travel Time (ATT)</p>
-                    <IconAlertCircle size={16} />
+                    <div className="relative">
+                      <IconAlertCircle size={16} />
+                      {hoveredTooltip === 'att' && (
+                        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-civiq-dark text-white text-[12px] font-semibold px-3 py-2 rounded-lg whitespace-nowrap z-10 shadow-lg">
+                          Average time for vehicles to complete their journeys
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-baseline gap-1">
                     <p className="font-bold text-civiq-dark text-[36px]">4.2</p>
                     <p className="text-civiq-dark text-[15px]">min</p>
-                    <img alt="Arrow" src="http://localhost:3845/assets/45b728e1f2bff40b5bec0c72fae372cd901faff5.svg" className="w-3 h-3 mx-1" />
+                    <img alt="Trending Up" src="/icons/trending_up.svg" className="w-3 h-3 mx-1" style={{filter: 'invert(1) hue-rotate(130deg) brightness(1.2) saturate(2)'}} />
                     <p className="text-civiq-green text-[15px]">+12.34%</p>
                   </div>
                 </div>
                 <LineChart data={[2, 3, 2.5, 4, 3.5, 5, 4, 4.2]} />
               </div>
-              
-              {/* Tooltip */}
-              {hoveredTooltip === 'att' && (
-                <div className="absolute left-0 bottom-full mb-2 bg-civiq-dark text-white text-[12px] px-3 py-2 rounded-lg whitespace-nowrap z-10 shadow-lg">
-                  Average time for vehicles to complete their journeys
-                </div>
-              )}
             </div>
 
             {/* Network Throughput */}
@@ -154,24 +154,24 @@ export const AboutSection = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-civiq-blue text-[15px] font-medium">Network Throughput</p>
-                    <IconAlertCircle size={16} />
+                    <div className="relative">
+                      <IconAlertCircle size={16} />
+                      {hoveredTooltip === 'throughput' && (
+                        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-civiq-dark text-white text-[12px] font-semibold px-3 py-2 rounded-lg whitespace-nowrap z-10 shadow-lg">
+                          Number of vehicles processed through the network per hour
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-baseline gap-1">
                     <p className="font-bold text-civiq-dark text-[36px]">1,875</p>
                     <p className="text-civiq-dark text-[15px]">veh/hr</p>
-                    <img alt="Arrow" src="http://localhost:3845/assets/45b728e1f2bff40b5bec0c72fae372cd901faff5.svg" className="w-3 h-3 mx-1" />
+                    <img alt="Trending Up" src="/icons/trending_up.svg" className="w-3 h-3 mx-1" style={{filter: 'invert(1) hue-rotate(130deg) brightness(1.2) saturate(2)'}} />
                     <p className="text-civiq-green text-[13px]">+8.32%</p>
                   </div>
                 </div>
                 <LineChart data={[1200, 1400, 1350, 1600, 1500, 1750, 1800, 1875]} />
               </div>
-              
-              {/* Tooltip */}
-              {hoveredTooltip === 'throughput' && (
-                <div className="absolute left-0 bottom-full mb-2 bg-civiq-dark text-white text-[12px] px-3 py-2 rounded-lg whitespace-nowrap z-10 shadow-lg">
-                  Number of vehicles processed through the network per hour
-                </div>
-              )}
             </div>
           </div>
 
