@@ -16,11 +16,12 @@ export default function Home() {
       {/* Hero Section with Title and Simulation Controls */}
       <section className="relative w-full pt-10 pb-10 bg-gray-50">
         {/* Background Image */}
-        <div className="absolute inset-0 opacity-40 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0 opacity-25 pointer-events-none overflow-hidden">
           <img 
             alt="" 
             className="absolute h-[142.97%] left-0 max-w-none top-[-43.02%] w-[116.79%]" 
-            src="https://www.figma.com/api/mcp/asset/5608de9b-06dd-4684-a0da-f76a2c904f0d" 
+            src="https://www.figma.com/api/mcp/asset/5608de9b-06dd-4684-a0da-f76a2c904f0d"
+            style={{ filter: 'grayscale(100%) brightness(0.6)' }}
           />
         </div>
 
