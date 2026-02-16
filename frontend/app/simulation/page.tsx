@@ -630,127 +630,147 @@ export default function SimulationDashboard() {
         <div className="max-w-[1400px] mx-auto px-6">
           <h2 className="font-bold text-civiq-dark text-[28px] mb-8">Simulation Metrics</h2>
           
-          <div className="grid grid-cols-12 gap-6">
-            {/* Left Column - Small Metric Cards */}
-            <div className="col-span-3 space-y-6">
-              {/* Average Travel Time */}
-              <div className="bg-white rounded-[32px] shadow-md p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-base font-bold text-civiq-dark">Average Travel Time (ATT)</h3>
-                  <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+          {/* Primary Metrics Container */}
+          <div className="bg-white rounded-[32px] shadow-lg p-8 mb-6">
+            <div className="grid grid-cols-12 gap-6">
+              {/* Left Column - Small Metric Cards */}
+              <div className="col-span-5 space-y-6">
+                {/* Average Travel Time */}
+                <div className="bg-gray-50 rounded-[24px] p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-base font-bold text-civiq-dark">Average Travel Time (ATT)</h3>
+                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="flex-shrink-0">
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-4xl font-bold text-civiq-dark">4.2</p>
+                        <span className="text-sm text-civiq-dark">min</span>
+                      </div>
+                      <span className="text-sm text-green-600">+12.34%</span>
+                    </div>
+                    <div className="flex-1 h-16 flex items-end">
+                      <svg className="w-full h-full" viewBox="0 0 200 60">
+                        <polyline 
+                          points="0,50 40,45 80,40 120,35 160,25 200,20" 
+                          fill="none" 
+                          stroke="#10b981" 
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-baseline gap-2 mb-3">
-                  <p className="text-4xl font-bold text-civiq-dark">4.2</p>
-                  <span className="text-sm text-civiq-dark">min</span>
-                  <span className="text-sm text-green-600 ml-auto">+12.34%</span>
+
+                {/* Average Waiting Time */}
+                <div className="bg-gray-50 rounded-[24px] p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-base font-bold text-civiq-dark">Average Waiting Time</h3>
+                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="flex-shrink-0">
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-4xl font-bold text-civiq-dark">18.5</p>
+                        <span className="text-sm text-civiq-dark">sec</span>
+                      </div>
+                      <span className="text-sm text-green-600">+22.25%</span>
+                    </div>
+                    <div className="flex-1 h-16 flex items-end">
+                      <svg className="w-full h-full" viewBox="0 0 200 60">
+                        <polyline 
+                          points="0,40 40,35 80,30 120,28 160,22 200,18" 
+                          fill="none" 
+                          stroke="#10b981" 
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                <div className="h-16 flex items-end">
-                  <svg className="w-full h-full" viewBox="0 0 200 60">
-                    <polyline 
-                      points="0,50 40,45 80,40 120,35 160,25 200,20" 
-                      fill="none" 
-                      stroke="#10b981" 
-                      strokeWidth="2"
-                    />
-                  </svg>
+
+                {/* Network Throughput */}
+                <div className="bg-gray-50 rounded-[24px] p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-base font-bold text-civiq-dark">Network Throughput</h3>
+                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="flex-shrink-0">
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-4xl font-bold text-civiq-dark">1,875</p>
+                        <span className="text-sm text-civiq-dark">veh/hr</span>
+                      </div>
+                      <span className="text-sm text-green-600">+4.32%</span>
+                    </div>
+                    <div className="flex-1 h-16 flex items-end">
+                      <svg className="w-full h-full" viewBox="0 0 200 60">
+                        <polyline 
+                          points="0,50 40,48 80,45 120,42 160,38 200,35" 
+                          fill="none" 
+                          stroke="#10b981" 
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real-Time Factor */}
+                <div className="bg-gray-50 rounded-[24px] p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-base font-bold text-civiq-dark">Real-Time Factor</h3>
+                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                  </div>
+                  <div className="flex items-center">
+                    <p className="text-4xl font-bold text-civiq-dark">1.5x</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Average Waiting Time */}
-              <div className="bg-white rounded-[32px] shadow-md p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-base font-bold text-civiq-dark">Average Waiting Time</h3>
-                  <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+              {/* Right Column - Charts */}
+              <div className="col-span-7 space-y-6">
+                {/* Learning Convergence */}
+                <div className="bg-gray-50 rounded-[24px] p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <h3 className="text-xl font-bold text-civiq-dark">Learning Convergence</h3>
+                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                  </div>
+                  <div className="h-56 bg-gradient-to-t from-blue-200 to-transparent opacity-50 rounded-lg" />
                 </div>
-                <div className="flex items-baseline gap-2 mb-3">
-                  <p className="text-4xl font-bold text-civiq-dark">18.5</p>
-                  <span className="text-sm text-civiq-dark">sec</span>
-                  <span className="text-sm text-green-600 ml-auto">+22.25%</span>
-                </div>
-                <div className="h-16 flex items-end">
-                  <svg className="w-full h-full" viewBox="0 0 200 60">
-                    <polyline 
-                      points="0,40 40,35 80,30 120,28 160,22 200,18" 
-                      fill="none" 
-                      stroke="#10b981" 
-                      strokeWidth="2"
-                    />
-                  </svg>
-                </div>
-              </div>
 
-              {/* Network Throughput */}
-              <div className="bg-white rounded-[32px] shadow-md p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-base font-bold text-civiq-dark">Network Throughput</h3>
-                  <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
-                </div>
-                <div className="flex items-baseline gap-2 mb-3">
-                  <p className="text-4xl font-bold text-civiq-dark">1,875</p>
-                  <span className="text-sm text-civiq-dark">veh/hr</span>
-                  <span className="text-sm text-green-600 ml-auto">+4.32%</span>
-                </div>
-                <div className="h-16 flex items-end">
-                  <svg className="w-full h-full" viewBox="0 0 200 60">
-                    <polyline 
-                      points="0,50 40,48 80,45 120,42 160,38 200,35" 
-                      fill="none" 
-                      stroke="#10b981" 
-                      strokeWidth="2"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Real-Time Factor */}
-              <div className="bg-white rounded-[32px] shadow-md p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-base font-bold text-civiq-dark">Real-Time Factor</h3>
-                  <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-4xl font-bold text-civiq-dark">1.5x</p>
+                {/* Traffic Wave Pattern */}
+                <div className="bg-gray-50 rounded-[24px] p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <h3 className="text-xl font-bold text-civiq-dark">Traffic Wave Pattern</h3>
+                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                  </div>
+                  <div className="h-56 flex items-center justify-center">
+                    <svg className="w-full h-full" viewBox="0 0 200 80">
+                      <polyline 
+                        points="0,40 30,35 60,30 90,28 120,32 150,38 180,35 200,30" 
+                        fill="none" 
+                        stroke="#ef4444" 
+                        strokeWidth="2"
+                        strokeDasharray="4 4"
+                      />
+                      <polyline 
+                        points="0,45 30,42 60,38 90,36 120,40 150,45 180,42 200,38" 
+                        fill="none" 
+                        stroke="#3b82f6" 
+                        strokeWidth="2"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Middle Column - Charts */}
-            <div className="col-span-6 space-y-6">
-              {/* Learning Convergence */}
-              <div className="bg-white rounded-[32px] shadow-md p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <h3 className="text-xl font-bold text-civiq-dark">Learning Convergence</h3>
-                  <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
-                </div>
-                <div className="h-56 bg-gradient-to-t from-blue-200 to-transparent opacity-50 rounded-lg" />
-              </div>
-
-              {/* Traffic Wave Pattern */}
-              <div className="bg-white rounded-[32px] shadow-md p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <h3 className="text-xl font-bold text-civiq-dark">Traffic Wave Pattern</h3>
-                  <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
-                </div>
-                <div className="h-56 flex items-center justify-center">
-                  <svg className="w-full h-full" viewBox="0 0 200 80">
-                    <polyline 
-                      points="0,40 30,35 60,30 90,28 120,32 150,38 180,35 200,30" 
-                      fill="none" 
-                      stroke="#ef4444" 
-                      strokeWidth="2"
-                      strokeDasharray="4 4"
-                    />
-                    <polyline 
-                      points="0,45 30,42 60,38 90,36 120,40 150,45 180,42 200,38" 
-                      fill="none" 
-                      stroke="#3b82f6" 
-                      strokeWidth="2"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Network Pressure Mapping */}
+          {/* Secondary Metrics */}
+          <div className="grid grid-cols-12 gap-6">
+            {/* Network Pressure Mapping */}
+            <div className="col-span-6">
               <div className="bg-white rounded-[32px] shadow-md p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <h3 className="text-xl font-bold text-civiq-dark">Network Pressure Mapping</h3>
@@ -767,7 +787,7 @@ export default function SimulationDashboard() {
             </div>
 
             {/* Right Column - Compute Time & Gauges */}
-            <div className="col-span-3 space-y-6">
+            <div className="col-span-6 space-y-6">
               {/* Average Compute Time */}
               <div className="bg-white rounded-[32px] shadow-md p-6">
                 <div className="flex items-center gap-2 mb-3">
@@ -777,71 +797,73 @@ export default function SimulationDashboard() {
                 <p className="text-3xl font-bold text-civiq-dark text-right">22.35 ms</p>
               </div>
 
-              {/* Average CO2 Emissions */}
-              <div className="bg-white rounded-[32px] shadow-md p-8">
-                <div className="text-center">
-                  <div className="relative w-full aspect-square max-w-[180px] mx-auto mb-3">
-                    <svg className="w-full h-full -rotate-90">
-                      <circle 
-                        cx="50%" 
-                        cy="50%" 
-                        r="45%" 
-                        fill="none" 
-                        stroke="#e5e7eb" 
-                        strokeWidth="16"
-                      />
-                      <circle 
-                        cx="50%" 
-                        cy="50%" 
-                        r="45%" 
-                        fill="none" 
-                        stroke="#7FE47E" 
-                        strokeWidth="16"
-                        strokeDasharray="282.7"
-                        strokeDashoffset="70"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <p className="text-5xl font-bold text-civiq-dark">142</p>
-                      <p className="text-lg text-civiq-dark">g/km</p>
+              <div className="grid grid-cols-2 gap-6">
+                {/* Average CO2 Emissions */}
+                <div className="bg-white rounded-[32px] shadow-md p-8">
+                  <div className="text-center">
+                    <div className="relative w-full aspect-square max-w-[180px] mx-auto mb-3">
+                      <svg className="w-full h-full -rotate-90">
+                        <circle 
+                          cx="50%" 
+                          cy="50%" 
+                          r="45%" 
+                          fill="none" 
+                          stroke="#e5e7eb" 
+                          strokeWidth="16"
+                        />
+                        <circle 
+                          cx="50%" 
+                          cy="50%" 
+                          r="45%" 
+                          fill="none" 
+                          stroke="#7FE47E" 
+                          strokeWidth="16"
+                          strokeDasharray="282.7"
+                          strokeDashoffset="70"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <p className="text-5xl font-bold text-civiq-dark">142</p>
+                        <p className="text-lg text-civiq-dark">g/km</p>
+                      </div>
                     </div>
+                    <p className="text-xs italic text-civiq-dark">Average CO2 Emissions per kilometer</p>
                   </div>
-                  <p className="text-xs italic text-civiq-dark">Average CO2 Emissions per kilometer</p>
                 </div>
-              </div>
 
-              {/* Average Fuel Consumption */}
-              <div className="bg-white rounded-[32px] shadow-md p-8">
-                <div className="text-center">
-                  <div className="relative w-full aspect-square max-w-[180px] mx-auto mb-3">
-                    <svg className="w-full h-full -rotate-90">
-                      <circle 
-                        cx="50%" 
-                        cy="50%" 
-                        r="45%" 
-                        fill="none" 
-                        stroke="#e5e7eb" 
-                        strokeWidth="16"
-                      />
-                      <circle 
-                        cx="50%" 
-                        cy="50%" 
-                        r="45%" 
-                        fill="none" 
-                        stroke="#04CE00" 
-                        strokeWidth="16"
-                        strokeDasharray="282.7"
-                        strokeDashoffset="140"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <p className="text-5xl font-bold text-civiq-dark">23</p>
-                      <p className="text-lg text-civiq-dark">g/km</p>
+                {/* Average Fuel Consumption */}
+                <div className="bg-white rounded-[32px] shadow-md p-8">
+                  <div className="text-center">
+                    <div className="relative w-full aspect-square max-w-[180px] mx-auto mb-3">
+                      <svg className="w-full h-full -rotate-90">
+                        <circle 
+                          cx="50%" 
+                          cy="50%" 
+                          r="45%" 
+                          fill="none" 
+                          stroke="#e5e7eb" 
+                          strokeWidth="16"
+                        />
+                        <circle 
+                          cx="50%" 
+                          cy="50%" 
+                          r="45%" 
+                          fill="none" 
+                          stroke="#04CE00" 
+                          strokeWidth="16"
+                          strokeDasharray="282.7"
+                          strokeDashoffset="140"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <p className="text-5xl font-bold text-civiq-dark">23</p>
+                        <p className="text-lg text-civiq-dark">g/km</p>
+                      </div>
                     </div>
+                    <p className="text-xs italic text-civiq-dark">Average Fuel Consumption of a Vehicle</p>
                   </div>
-                  <p className="text-xs italic text-civiq-dark">Average Fuel Consumption of a Vehicle</p>
                 </div>
               </div>
             </div>
