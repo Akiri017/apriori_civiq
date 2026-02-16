@@ -85,6 +85,10 @@ export default function SimulationDashboard() {
     if (video.duration) {
       setDuration(video.duration)
     }
+    
+    // Ensure video is always muted
+    video.volume = 0
+    video.muted = true
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata)
@@ -198,18 +202,18 @@ export default function SimulationDashboard() {
       <div className="max-w-[1400px] mx-auto px-6 py-8">
 
         {/* Map Visualization */}
-        <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-civiq-dark text-[18px]">Interactive Simulation Map</h3>
-            <div className="flex items-center gap-2 text-xs text-gray-600">
-              <span className="flex items-center gap-1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
+        <div className="bg-white rounded-[32px] shadow-sm border border-gray-200 p-8 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-bold text-civiq-dark text-[20px]">Interactive Simulation Map</h3>
+            <div className="flex items-center gap-4 text-xs text-gray-600">
+              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
                   <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
                 </svg>
                 Pan with mouse
               </span>
-              <span className="flex items-center gap-1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
+              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-civiq-blue">
                   <circle cx="12" cy="12" r="3"/>
                   <path d="M12 5v2m0 10v2m7-7h-2M5 12h2"/>
                 </svg>
@@ -245,6 +249,8 @@ export default function SimulationDashboard() {
                   className="w-full h-full object-contain select-none pointer-events-none"
                   draggable={false}
                   preload="metadata"
+                  muted
+                  playsInline
                 />
               </div>
               
@@ -331,41 +337,41 @@ export default function SimulationDashboard() {
           </div>
           
           {/* Playback Controls */}
-          <div className="flex items-center justify-center gap-4 mb-4">
+          <div className="flex items-center justify-center gap-6 mt-6 mb-5">
             {/* Restart Button */}
             <button 
-              className="w-10 h-10 rounded-full bg-gray-300 text-civiq-dark flex items-center justify-center hover:bg-gray-400 transition-all"
+              className="w-11 h-11 rounded-full bg-gray-300 text-civiq-dark flex items-center justify-center hover:bg-gray-400 transition-all shadow-sm"
               onClick={handleStop}
               title="Restart Simulation"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
               </svg>
             </button>
             
             {/* Rewind Button */}
             <button 
-              className="w-10 h-10 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all"
+              className="w-11 h-11 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-sm"
               onClick={() => handleSeek(-10)}
               title="Rewind 10s"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
               </svg>
             </button>
             
             {/* Play/Pause Button */}
             <button 
-              className="w-14 h-14 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-md"
+              className="w-16 h-16 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-lg hover:shadow-xl"
               onClick={() => setIsPlaying(!isPlaying)}
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                 </svg>
               ) : (
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
               )}
@@ -373,21 +379,21 @@ export default function SimulationDashboard() {
             
             {/* Forward Button */}
             <button 
-              className="w-10 h-10 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all"
+              className="w-11 h-11 rounded-full bg-civiq-purple text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-sm"
               onClick={() => handleSeek(10)}
               title="Forward 10s"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
               </svg>
             </button>
           </div>
           
           {/* Progress Bar */}
-          <div className="mt-4 bg-gray-50 rounded-[20px] p-4 border border-gray-200">
-            <div className="flex items-center justify-between mb-2 text-sm font-medium">
+          <div className="bg-gray-50 rounded-[20px] p-5 border border-gray-200">
+            <div className="flex items-center justify-between mb-3 text-sm font-semibold">
               <span className="text-civiq-dark">{formatTime(currentTime)}</span>
-              <span className="text-gray-500">Duration: {formatTime(duration)}</span>
+              <span className="text-gray-500 text-xs">Duration: {formatTime(duration)}</span>
             </div>
             <div 
               className="relative h-3 bg-gray-200 rounded-full overflow-hidden cursor-pointer group hover:h-4 transition-all shadow-inner"
@@ -403,11 +409,14 @@ export default function SimulationDashboard() {
                 style={{ left: `calc(${(currentTime / duration) * 100}% - 8px)` }}
               />
             </div>
-            <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                {isPlaying ? '▶' : '⏸'} {isPlaying ? 'Playing' : 'Paused'}
+            <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className={`${isPlaying ? 'text-green-500' : 'text-gray-400'}`}>
+                  {isPlaying ? '▶' : '⏸'}
+                </span>
+                {isPlaying ? 'Playing' : 'Paused'}
               </span>
-              <span>
+              <span className="font-medium">
                 {Math.round((currentTime / duration) * 100)}% Complete
               </span>
             </div>
