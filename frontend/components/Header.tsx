@@ -13,7 +13,7 @@ export const Header = () => {
               <img
                 alt="Civiq Logo"
                 className="w-full h-full object-contain"
-                src="/civiq-logo.png"
+                src="/icons/civiq-logo.png"
               />
             </div>
             <p className="font-bold text-[20px] text-civiq-purple">Civiq</p>
