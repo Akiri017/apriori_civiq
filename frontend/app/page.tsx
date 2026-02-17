@@ -16,7 +16,7 @@ export default function Home() {
       {/* Hero Section with Title and Simulation Controls */}
       <section className="relative w-full pt-10 pb-10 bg-gray-50">
         {/* Background Image */}
-        <div className="absolute inset-0 opacity-25 pointer-events-none overflow-hidden">
+        <div className="fixed inset-0 opacity-25 pointer-events-none overflow-hidden z-0">
           <img 
             alt="" 
             className="absolute h-[142.97%] left-0 max-w-none top-[-43.02%] w-[116.79%]" 
