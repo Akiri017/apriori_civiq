@@ -68,6 +68,14 @@ export default function SimulationDashboard() {
     'hierarchical_qmix': 3
   }
 
+  // Compute time ranking (for scalability): monolithic_qmix > selfish_routing > hierarchical_qmix
+  // Lower compute time is better, so higher rank means better performance
+  const computeTimeRank: Record<string, number> = {
+    'monolithic_qmix': 1,
+    'selfish_routing': 2,
+    'hierarchical_qmix': 3
+  }
+
   // Determine superior and inferior algorithms for comparative mode
   const getSuperiorAlgorithm = () => {
     const rank1 = algorithmRank[algorithm1] || 0
@@ -79,7 +87,19 @@ export default function SimulationDashboard() {
     }
   }
 
+  // Determine superior algorithm for compute time (lower is better)
+  const getSuperiorAlgorithmForComputeTime = () => {
+    const rank1 = computeTimeRank[algorithm1] || 0
+    const rank2 = computeTimeRank[algorithm2] || 0
+    if (rank1 > rank2) {
+      return { superior: algorithm1, inferior: algorithm2 }
+    } else {
+      return { superior: algorithm2, inferior: algorithm1 }
+    }
+  }
+
   const { superior: superiorAlgo, inferior: inferiorAlgo } = view === 'comparative' ? getSuperiorAlgorithm() : { superior: algorithm1, inferior: algorithm2 }
+  const { superior: superiorComputeAlgo, inferior: inferiorComputeAlgo } = view === 'comparative' ? getSuperiorAlgorithmForComputeTime() : { superior: algorithm1, inferior: algorithm2 }
 
   // Sync video playback with state - Player 1
   useEffect(() => {
@@ -814,10 +834,10 @@ export default function SimulationDashboard() {
                     </div>
                   </div>
 
-                  {/* Right Column - Traffic Wave Pattern */}
-                  <div className="col-span-7">
+                  {/* Right Column - Traffic Wave Pattern & Compute Time */}
+                  <div className="col-span-7 space-y-6">
                     {/* Traffic Wave Pattern */}
-                    <div className="bg-gray-50 rounded-[24px] p-6 h-full">
+                    <div className="bg-gray-50 rounded-[24px] p-6">
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2 relative">
                           <h3 className="text-xl font-bold text-civiq-dark">Traffic Wave Pattern</h3>
@@ -869,7 +889,7 @@ export default function SimulationDashboard() {
                       </div>
 
                       {/* Chart */}
-                      <div className="relative h-[400px]">
+                      <div className="relative h-[225px]">
                         <svg className="w-full h-full" viewBox="0 0 680 220" preserveAspectRatio="none">
                           {/* Y-axis labels */}
                           <text x="10" y="15" fontSize="13" fill="#615e83" textAnchor="start">45</text>
@@ -940,46 +960,218 @@ export default function SimulationDashboard() {
                         </svg>
                       </div>
                     </div>
+
+                    {/* Average Compute Time */}
+                    <div className="bg-gray-50 rounded-[24px] p-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2 relative">
+                          <h3 className="text-base font-bold text-civiq-dark">Average Compute Time</h3>
+                          <div 
+                            className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help"
+                            onMouseEnter={() => setActiveTooltip('compute-time')}
+                            onMouseLeave={() => setActiveTooltip(null)}
+                          >
+                            i
+                          </div>
+                          {activeTooltip === 'compute-time' && (
+                            <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg">
+                              The average time required to compute routing decisions per simulation step. Lower values indicate better scalability.
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                            <path d="M6 2L4 6h4L6 2z"/>
+                          </svg>
+                          +45.8%
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="flex-shrink-0 flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
+                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[superiorComputeAlgo] || superiorComputeAlgo}</p>
+                            </div>
+                            <div className="flex items-baseline gap-1.5">
+                              <p className="text-3xl font-bold text-[#1877f2]">22.35</p>
+                              <span className="text-sm text-[#1877f2]">ms</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[inferiorComputeAlgo] || inferiorComputeAlgo}</p>
+                            <p className="text-sm text-gray-600">41.2 ms</p>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 h-16 w-32 flex items-end">
+                          <svg className="w-full h-full" viewBox="0 0 130 60" preserveAspectRatio="none">
+                            <polyline points="0,52 30,50 60,47 90,44 120,40" fill="none" stroke="#10b981" strokeWidth="2.5"/>
+                            <polyline points="0,45 30,44 60,42 90,41 120,40" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* CO2 and Fuel Consumption - 4 gauges */}
-              <div className="grid grid-cols-4 gap-6 mb-6">
-                {[
-                  { label: 'Avg. CO2 Emissions', algo: superiorAlgo, value: 142, unit: 'g/km', color: '#7FE47E' },
-                  { label: 'Avg. CO2 Emissions', algo: inferiorAlgo, value: 420, unit: 'g/km', color: '#FF718B' },
-                  { label: 'Avg. Fuel Consumption', algo: superiorAlgo, value: 23, unit: 'g/km', color: '#04CE00' },
-                  { label: 'Avg. Fuel Consumption', algo: inferiorAlgo, value: 67, unit: 'g/km', color: '#FF718B' }
-                ].map((item, index) => (
-                  <div key={index} className="bg-white rounded-[32px] shadow-md p-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-sm font-bold text-civiq-dark">{item.label}</h3>
-                      <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+              {/* CO2 and Fuel Consumption - 2 comparison cards */}
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                {/* CO2 Emissions Card */}
+                <div className="bg-white rounded-[32px] shadow-lg p-6">
+                  <div className="flex items-center gap-2 mb-6">
+                    <h3 className="text-base font-bold text-civiq-dark">Average CO2 Emissions</h3>
+                    <div 
+                      className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help"
+                      onMouseEnter={() => setActiveTooltip('co2')}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                    >
+                      i
                     </div>
-                    <p className="text-xs italic text-civiq-dark mb-4">{algorithmLabels[item.algo] || item.algo}</p>
-                    <div className="relative w-full aspect-square max-w-[140px] mx-auto mb-3">
-                      <svg className="w-full h-full -rotate-90">
-                        <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#e5e7eb" strokeWidth="14"/>
-                        <circle 
-                          cx="50%" 
-                          cy="50%" 
-                          r="45%" 
-                          fill="none" 
-                          stroke={item.color} 
-                          strokeWidth="14"
-                          strokeDasharray="282.7"
-                          strokeDashoffset={282.7 * (1 - item.value / 500)}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <p className="text-3xl font-bold text-civiq-dark">{item.value}</p>
-                        <p className="text-sm text-civiq-dark">{item.unit}</p>
+                    {activeTooltip === 'co2' && (
+                      <div className="absolute mt-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg">
+                        Carbon dioxide emissions per kilometer traveled. Lower values indicate better environmental performance.
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Superior Algorithm */}
+                    <div>
+                      <p className="text-sm font-bold text-[#1877f2] mb-3 text-center">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
+                      <div className="relative w-full aspect-square max-w-[160px] mx-auto">
+                        <svg className="w-full h-full -rotate-90">
+                          <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#e5e7eb" strokeWidth="14"/>
+                          <circle 
+                            cx="50%" 
+                            cy="50%" 
+                            r="45%" 
+                            fill="none" 
+                            stroke="#7FE47E" 
+                            strokeWidth="14"
+                            strokeDasharray="282.7"
+                            strokeDashoffset={282.7 * (1 - 142 / 500)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <p className="text-3xl font-bold text-civiq-dark">142</p>
+                          <p className="text-sm text-civiq-dark">g/km</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Inferior Algorithm */}
+                    <div>
+                      <p className="text-sm text-gray-600 mb-3 text-center">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
+                      <div className="relative w-full aspect-square max-w-[160px] mx-auto">
+                        <svg className="w-full h-full -rotate-90">
+                          <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#e5e7eb" strokeWidth="14"/>
+                          <circle 
+                            cx="50%" 
+                            cy="50%" 
+                            r="45%" 
+                            fill="none" 
+                            stroke="#FF718B" 
+                            strokeWidth="14"
+                            strokeDasharray="282.7"
+                            strokeDashoffset={282.7 * (1 - 420 / 500)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <p className="text-3xl font-bold text-civiq-dark">420</p>
+                          <p className="text-sm text-civiq-dark">g/km</p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                ))}
+                  
+                  <div className="flex items-center justify-center gap-1 text-green-600 text-sm font-medium mt-4">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M6 2L4 6h4L6 2z"/>
+                    </svg>
+                    +66.2% improvement
+                  </div>
+                </div>
+
+                {/* Fuel Consumption Card */}
+                <div className="bg-white rounded-[32px] shadow-lg p-6">
+                  <div className="flex items-center gap-2 mb-6">
+                    <h3 className="text-base font-bold text-civiq-dark">Average Fuel Consumption</h3>
+                    <div 
+                      className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help"
+                      onMouseEnter={() => setActiveTooltip('fuel')}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                    >
+                      i
+                    </div>
+                    {activeTooltip === 'fuel' && (
+                      <div className="absolute mt-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg">
+                        Fuel consumed per kilometer traveled. Lower values indicate better fuel efficiency.
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Superior Algorithm */}
+                    <div>
+                      <p className="text-sm font-bold text-[#1877f2] mb-3 text-center">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
+                      <div className="relative w-full aspect-square max-w-[160px] mx-auto">
+                        <svg className="w-full h-full -rotate-90">
+                          <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#e5e7eb" strokeWidth="14"/>
+                          <circle 
+                            cx="50%" 
+                            cy="50%" 
+                            r="45%" 
+                            fill="none" 
+                            stroke="#04CE00" 
+                            strokeWidth="14"
+                            strokeDasharray="282.7"
+                            strokeDashoffset={282.7 * (1 - 23 / 100)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <p className="text-3xl font-bold text-civiq-dark">23</p>
+                          <p className="text-sm text-civiq-dark">g/km</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Inferior Algorithm */}
+                    <div>
+                      <p className="text-sm text-gray-600 mb-3 text-center">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
+                      <div className="relative w-full aspect-square max-w-[160px] mx-auto">
+                        <svg className="w-full h-full -rotate-90">
+                          <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#e5e7eb" strokeWidth="14"/>
+                          <circle 
+                            cx="50%" 
+                            cy="50%" 
+                            r="45%" 
+                            fill="none" 
+                            stroke="#FF718B" 
+                            strokeWidth="14"
+                            strokeDasharray="282.7"
+                            strokeDashoffset={282.7 * (1 - 67 / 100)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <p className="text-3xl font-bold text-civiq-dark">67</p>
+                          <p className="text-sm text-civiq-dark">g/km</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-center gap-1 text-green-600 text-sm font-medium mt-4">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M6 2L4 6h4L6 2z"/>
+                    </svg>
+                    +65.7% improvement
+                  </div>
+                </div>
               </div>
             </>
           ) : (
