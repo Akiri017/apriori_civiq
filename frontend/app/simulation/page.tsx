@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { SimulationControls } from '@/components/SimulationControls'
 import { Footer } from '@/components/Footer'
@@ -31,6 +31,7 @@ const algorithmLabels: Record<string, string> = {
 
 export default function SimulationDashboard() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   
   // Video Player 1 state
   const videoRef1 = useRef<HTMLVideoElement>(null)
@@ -60,6 +61,43 @@ export default function SimulationDashboard() {
   const view = searchParams.get('view') || ''
   const algorithm1 = searchParams.get('algorithm1') || ''
   const algorithm2 = searchParams.get('algorithm2') || ''
+
+  // Security: Validate required parameters and redirect if missing/invalid
+  useEffect(() => {
+    const validateAccess = () => {
+      // Check if basic required fields are present
+      if (!mapSize || !trafficScale || !view || !algorithm1) {
+        router.push('/')
+        return false
+      }
+
+      // Validate that values are from allowed options
+      const validMapSizes = ['2km', '0.75km', '4x4']
+      const validTrafficScales = ['free_flow', 'stable_flow', 'forced_flow']
+      const validViews = ['focused', 'comparative']
+      const validAlgorithms = ['selfish_routing', 'monolithic_qmix', 'hierarchical_qmix']
+
+      if (!validMapSizes.includes(mapSize) || 
+          !validTrafficScales.includes(trafficScale) || 
+          !validViews.includes(view) ||
+          !validAlgorithms.includes(algorithm1)) {
+        router.push('/')
+        return false
+      }
+
+      // For comparative view, check algorithm2 is present and different from algorithm1
+      if (view === 'comparative') {
+        if (!algorithm2 || algorithm1 === algorithm2 || !validAlgorithms.includes(algorithm2)) {
+          router.push('/')
+          return false
+        }
+      }
+
+      return true
+    }
+
+    validateAccess()
+  }, [mapSize, trafficScale, view, algorithm1, algorithm2, router])
 
   // Algorithm ranking: selfish_routing < monolithic_qmix < hierarchical_qmix
   const algorithmRank: Record<string, number> = {
