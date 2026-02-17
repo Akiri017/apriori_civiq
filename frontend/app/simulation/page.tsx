@@ -61,6 +61,26 @@ export default function SimulationDashboard() {
   const algorithm1 = searchParams.get('algorithm1') || ''
   const algorithm2 = searchParams.get('algorithm2') || ''
 
+  // Algorithm ranking: selfish_routing < monolithic_qmix < hierarchical_qmix
+  const algorithmRank: Record<string, number> = {
+    'selfish_routing': 1,
+    'monolithic_qmix': 2,
+    'hierarchical_qmix': 3
+  }
+
+  // Determine superior and inferior algorithms for comparative mode
+  const getSuperiorAlgorithm = () => {
+    const rank1 = algorithmRank[algorithm1] || 0
+    const rank2 = algorithmRank[algorithm2] || 0
+    if (rank1 > rank2) {
+      return { superior: algorithm1, inferior: algorithm2 }
+    } else {
+      return { superior: algorithm2, inferior: algorithm1 }
+    }
+  }
+
+  const { superior: superiorAlgo, inferior: inferiorAlgo } = view === 'comparative' ? getSuperiorAlgorithm() : { superior: algorithm1, inferior: algorithm2 }
+
   // Sync video playback with state - Player 1
   useEffect(() => {
     if (!videoRef1.current) return
@@ -558,7 +578,7 @@ export default function SimulationDashboard() {
           <div className="grid grid-cols-2 gap-6 mb-6">
             {renderVideoPlayer(
               1,
-              algorithm1,
+              superiorAlgo,
               videoRef1,
               isPlaying1,
               setIsPlaying1,
@@ -580,7 +600,7 @@ export default function SimulationDashboard() {
             
             {renderVideoPlayer(
               2,
-              algorithm2,
+              inferiorAlgo,
               videoRef2,
               isPlaying2,
               setIsPlaying2,
@@ -670,7 +690,7 @@ export default function SimulationDashboard() {
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
-                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[algorithm1] || algorithm1}</p>
+                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
                             </div>
                             <div className="flex items-baseline gap-1.5">
                               <p className="text-3xl font-bold text-[#1877f2]">4.2</p>
@@ -678,7 +698,7 @@ export default function SimulationDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[algorithm2] || algorithm2}</p>
+                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
                             <p className="text-sm text-gray-600">6.7 mins</p>
                           </div>
                         </div>
@@ -721,7 +741,7 @@ export default function SimulationDashboard() {
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
-                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[algorithm1] || algorithm1}</p>
+                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
                             </div>
                             <div className="flex items-baseline gap-1.5">
                               <p className="text-3xl font-bold text-[#1877f2]">18.5</p>
@@ -729,7 +749,7 @@ export default function SimulationDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[algorithm2] || algorithm2}</p>
+                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
                             <p className="text-sm text-gray-600">35 sec</p>
                           </div>
                         </div>
@@ -772,7 +792,7 @@ export default function SimulationDashboard() {
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
-                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[algorithm1] || algorithm1}</p>
+                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
                             </div>
                             <div className="flex items-baseline gap-1.5">
                               <p className="text-3xl font-bold text-[#1877f2]">1,875</p>
@@ -780,7 +800,7 @@ export default function SimulationDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[algorithm2] || algorithm2}</p>
+                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
                             <p className="text-sm text-gray-600">1,928 veh/hr</p>
                           </div>
                         </div>
@@ -794,27 +814,130 @@ export default function SimulationDashboard() {
                     </div>
                   </div>
 
-                  {/* Right Column - Learning Convergence & Traffic Wave Pattern */}
-                  <div className="col-span-7 space-y-6">
-                    {/* Learning Convergence - Placeholder */}
-                    <div className="bg-gray-50 rounded-[24px] p-6 h-[280px]">
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3 className="text-xl font-bold text-civiq-dark">Learning Convergence</h3>
-                        <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                  {/* Right Column - Traffic Wave Pattern */}
+                  <div className="col-span-7">
+                    {/* Traffic Wave Pattern */}
+                    <div className="bg-gray-50 rounded-[24px] p-6 h-full">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2 relative">
+                          <h3 className="text-xl font-bold text-civiq-dark">Traffic Wave Pattern</h3>
+                          <div 
+                            className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help"
+                            onMouseEnter={() => setActiveTooltip('traffic-wave')}
+                            onMouseLeave={() => setActiveTooltip(null)}
+                          >
+                            i
+                          </div>
+                          {activeTooltip === 'traffic-wave' && (
+                            <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg">
+                              Visualization of how traffic congestion propagates through the network over time.
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Legend - Grouped by Algorithm */}
+                        <div className="flex flex-col gap-1">
+                          {/* Superior Algorithm */}
+                          <div className="flex items-center gap-4">
+                            <p className="text-[15px] font-bold text-civiq-dark min-w-[120px]">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full bg-[#ef4444]"></div>
+                                <p className="text-sm text-[#615e83]">Queue Length</p>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full bg-[#f97316]"></div>
+                                <p className="text-sm text-[#615e83]">Waiting Time</p>
+                              </div>
+                            </div>
+                          </div>
+                          {/* Inferior Algorithm */}
+                          <div className="flex items-center gap-4">
+                            <p className="text-[15px] font-bold text-civiq-dark min-w-[120px]">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full bg-[#3b82f6]"></div>
+                                <p className="text-sm text-[#615e83]">Queue Length</p>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full bg-[#1e40af]"></div>
+                                <p className="text-sm text-[#615e83]">Waiting Time</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="h-full flex items-center justify-center text-gray-400">
-                        <p>Chart Placeholder</p>
-                      </div>
-                    </div>
 
-                    {/* Traffic Wave Pattern - Placeholder */}
-                    <div className="bg-gray-50 rounded-[24px] p-6 h-[280px]">
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3 className="text-xl font-bold text-civiq-dark">Traffic Wave Pattern</h3>
-                        <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
-                      </div>
-                      <div className="h-full flex items-center justify-center text-gray-400">
-                        <p>Chart Placeholder</p>
+                      {/* Chart */}
+                      <div className="relative h-[400px]">
+                        <svg className="w-full h-full" viewBox="0 0 680 220" preserveAspectRatio="none">
+                          {/* Y-axis labels */}
+                          <text x="10" y="15" fontSize="13" fill="#615e83" textAnchor="start">45</text>
+                          <text x="10" y="75" fontSize="13" fill="#615e83" textAnchor="start">30</text>
+                          <text x="10" y="135" fontSize="13" fill="#615e83" textAnchor="start">15</text>
+                          <text x="18" y="195" fontSize="13" fill="#615e83" textAnchor="start">0</text>
+
+                          {/* Y-axis label (rotated) */}
+                          <text x="0" y="110" fontSize="10" fill="#031661" textAnchor="middle" transform="rotate(-90 0 110)">Vehicles / Second</text>
+
+                          {/* Horizontal grid line */}
+                          <line x1="50" y1="190" x2="670" y2="190" stroke="#E5E5EF" strokeWidth="1.5"/>
+
+                          {/* Traffic wave lines */}
+                          {/* Civiq - Queue Length (red) */}
+                          <polyline 
+                            points="50,185 110,165 180,130 250,100 320,90 390,100 460,130 530,160 600,175 640,183 670,187" 
+                            fill="none" 
+                            stroke="#ef4444" 
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          {/* Civiq - Waiting Time (orange) */}
+                          <polyline 
+                            points="50,188 110,178 180,160 250,140 320,130 390,135 460,150 530,170 600,182 640,187 670,189" 
+                            fill="none" 
+                            stroke="#f97316" 
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          {/* Selfish Routing - Queue Length (blue) */}
+                          <polyline 
+                            points="50,180 110,155 180,115 250,80 320,65 390,80 460,115 530,150 600,170 640,180 670,185" 
+                            fill="none" 
+                            stroke="#3b82f6" 
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          {/* Selfish Routing - Waiting Time (dark blue) */}
+                          <polyline 
+                            points="50,188 110,186 180,178 250,170 320,165 390,168 460,175 530,182 600,187 640,189 670,190" 
+                            fill="none" 
+                            stroke="#1e40af" 
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          {/* X-axis labels */}
+                          <text x="50" y="210" fontSize="12" fill="#615e83" textAnchor="middle">2:50</text>
+                          <text x="140" y="210" fontSize="12" fill="#615e83" textAnchor="middle">5:00</text>
+                          <text x="230" y="210" fontSize="12" fill="#615e83" textAnchor="middle">7:50</text>
+                          <text x="320" y="210" fontSize="12" fill="#615e83" textAnchor="middle">10:00</text>
+                          <text x="390" y="210" fontSize="12" fill="#615e83" textAnchor="middle">12:50</text>
+                          <text x="460" y="210" fontSize="12" fill="#615e83" textAnchor="middle">15:00</text>
+                          <text x="530" y="210" fontSize="12" fill="#615e83" textAnchor="middle">17:50</text>
+                          <text x="600" y="210" fontSize="12" fill="#615e83" textAnchor="middle">20:00</text>
+                          <text x="650" y="210" fontSize="12" fill="#615e83" textAnchor="middle">22:50</text>
+
+                          {/* X-axis label */}
+                          <text x="655" y="218" fontSize="10" fill="#031661" textAnchor="end">Simulation Time</text>
+                        </svg>
                       </div>
                     </div>
                   </div>
@@ -824,10 +947,10 @@ export default function SimulationDashboard() {
               {/* CO2 and Fuel Consumption - 4 gauges */}
               <div className="grid grid-cols-4 gap-6 mb-6">
                 {[
-                  { label: 'Avg. CO2 Emissions', algo: algorithm1, value: 142, unit: 'g/km', color: '#7FE47E' },
-                  { label: 'Avg. CO2 Emissions', algo: algorithm2, value: 420, unit: 'g/km', color: '#FF718B' },
-                  { label: 'Avg. Fuel Consumption', algo: algorithm1, value: 23, unit: 'g/km', color: '#04CE00' },
-                  { label: 'Avg. Fuel Consumption', algo: algorithm2, value: 67, unit: 'g/km', color: '#FF718B' }
+                  { label: 'Avg. CO2 Emissions', algo: superiorAlgo, value: 142, unit: 'g/km', color: '#7FE47E' },
+                  { label: 'Avg. CO2 Emissions', algo: inferiorAlgo, value: 420, unit: 'g/km', color: '#FF718B' },
+                  { label: 'Avg. Fuel Consumption', algo: superiorAlgo, value: 23, unit: 'g/km', color: '#04CE00' },
+                  { label: 'Avg. Fuel Consumption', algo: inferiorAlgo, value: 67, unit: 'g/km', color: '#FF718B' }
                 ].map((item, index) => (
                   <div key={index} className="bg-white rounded-[32px] shadow-md p-6">
                     <div className="flex items-center gap-2 mb-2">
