@@ -652,13 +652,31 @@ export default function SimulationDashboard() {
                       <span className="text-xs text-green-600">+12.34%</span>
                     </div>
                     <div className="flex-1 h-14 flex items-end">
-                      <svg className="w-full h-full" viewBox="0 0 200 60">
+                      <svg className="w-full h-full" viewBox="0 0 200 60" preserveAspectRatio="none">
+                        {/* Grid lines */}
+                        <line x1="0" y1="50" x2="200" y2="50" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        <line x1="0" y1="40" x2="200" y2="40" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        <line x1="0" y1="30" x2="200" y2="30" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        {/* Filled area */}
                         <polyline 
                           points="0,50 40,45 80,40 120,35 160,25 200,20" 
                           fill="none" 
                           stroke="#10b981" 
-                          strokeWidth="2"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         />
+                        <polyline 
+                          points="0,50 40,45 80,40 120,35 160,25 200,20 200,60 0,60" 
+                          fill="url(#gradientATT)" 
+                          opacity="0.2"
+                        />
+                        <defs>
+                          <linearGradient id="gradientATT" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#10b981" />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
                       </svg>
                     </div>
                   </div>
@@ -667,7 +685,7 @@ export default function SimulationDashboard() {
 
               {/* Learning Convergence - Row 1-2, Right */}
               <div className="col-span-7 row-span-2">
-                <div className="bg-gray-50 rounded-[24px] p-5 h-full">
+                <div className="bg-gray-50 rounded-[24px] p-5 h-full flex flex-col">
                   <div className="flex items-center gap-2 mb-3 group">
                     <h3 className="text-base font-bold text-civiq-dark">Learning Convergence</h3>
                     <div className="relative w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help hover:border-civiq-blue hover:text-civiq-blue transition-colors">
@@ -675,7 +693,92 @@ export default function SimulationDashboard() {
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-civiq-dark text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">Agent learning progress over time</div>
                     </div>
                   </div>
-                  <div className="h-48 bg-gradient-to-t from-blue-200 to-transparent opacity-50 rounded-lg" />
+                  <div className="flex-1 flex items-center justify-center">
+                    <svg className="w-full h-full" viewBox="0 0 420 230" preserveAspectRatio="xMidYMid meet">
+                      <defs>
+                        <linearGradient id="learningGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#3b82f6" />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.15" />
+                        </linearGradient>
+                      </defs>
+                      {/* Grid lines - horizontal */}
+                      <line x1="50" y1="35" x2="400" y2="35" stroke="#e5e7eb" strokeWidth="0.5"/>
+                      <line x1="50" y1="70" x2="400" y2="70" stroke="#e5e7eb" strokeWidth="0.5"/>
+                      <line x1="50" y1="105" x2="400" y2="105" stroke="#e5e7eb" strokeWidth="0.5"/>
+                      <line x1="50" y1="140" x2="400" y2="140" stroke="#e5e7eb" strokeWidth="0.5"/>
+                      
+                      {/* Axes */}
+                      <line x1="50" y1="10" x2="50" y2="175" stroke="#d1d5db" strokeWidth="0.8"/>
+                      <line x1="50" y1="175" x2="400" y2="175" stroke="#d1d5db" strokeWidth="0.8"/>
+                      
+                      {/* Y-axis ticks and labels */}
+                      <line x1="45" y1="175" x2="50" y2="175" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="42" y="180" fontSize="10" fill="#999" textAnchor="end">0</text>
+                      
+                      <line x1="45" y1="140" x2="50" y2="140" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="42" y="145" fontSize="10" fill="#999" textAnchor="end">-50</text>
+                      
+                      <line x1="45" y1="105" x2="50" y2="105" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="42" y="110" fontSize="10" fill="#999" textAnchor="end">-100</text>
+                      
+                      <line x1="45" y1="70" x2="50" y2="70" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="42" y="75" fontSize="10" fill="#999" textAnchor="end">-150</text>
+                      
+                      <line x1="45" y1="35" x2="50" y2="35" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="42" y="40" fontSize="10" fill="#999" textAnchor="end">50</text>
+                      
+                      {/* X-axis ticks and labels */}
+                      <line x1="70" y1="175" x2="70" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="70" y="200" fontSize="9" fill="#999" textAnchor="middle">0</text>
+                      
+                      <line x1="105" y1="175" x2="105" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="105" y="200" fontSize="9" fill="#999" textAnchor="middle">10</text>
+                      
+                      <line x1="140" y1="175" x2="140" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="140" y="200" fontSize="9" fill="#999" textAnchor="middle">20</text>
+                      
+                      <line x1="175" y1="175" x2="175" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="175" y="200" fontSize="9" fill="#999" textAnchor="middle">30</text>
+                      
+                      <line x1="210" y1="175" x2="210" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="210" y="200" fontSize="9" fill="#999" textAnchor="middle">40</text>
+                      
+                      <line x1="245" y1="175" x2="245" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="245" y="200" fontSize="9" fill="#999" textAnchor="middle">50</text>
+                      
+                      <line x1="280" y1="175" x2="280" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="280" y="200" fontSize="9" fill="#999" textAnchor="middle">60</text>
+                      
+                      <line x1="315" y1="175" x2="315" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="315" y="200" fontSize="9" fill="#999" textAnchor="middle">70</text>
+                      
+                      <line x1="350" y1="175" x2="350" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="350" y="200" fontSize="9" fill="#999" textAnchor="middle">80</text>
+                      
+                      <line x1="385" y1="175" x2="385" y2="180" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <text x="385" y="200" fontSize="9" fill="#999" textAnchor="middle">90</text>
+                      
+                      {/* Learning curve with fill */}
+                      <polyline 
+                        points="55,170 85,160 115,145 145,130 175,115 205,105 235,95 265,88 295,82 325,78 355,75 385,72" 
+                        fill="none" 
+                        stroke="#3b82f6" 
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <polyline 
+                        points="55,170 85,160 115,145 145,130 175,115 205,105 235,95 265,88 295,82 325,78 355,75 385,72 385,175 55,175" 
+                        fill="url(#learningGradient)" 
+                      />
+                      
+                      {/* Y-axis label */}
+                      <text x="12" y="95" fontSize="9" fill="#999" textAnchor="middle" fontWeight="400" transform="rotate(-90 12 95)">Cumulative Reward</text>
+                      
+                      {/* X-axis label */}
+                      <text x="380" y="220" fontSize="9" fill="#999" textAnchor="end" fontWeight="400">Training Episode</text>
+                    </svg>
+                  </div>
                 </div>
               </div>
 
@@ -698,13 +801,31 @@ export default function SimulationDashboard() {
                       <span className="text-xs text-green-600">+22.25%</span>
                     </div>
                     <div className="flex-1 h-14 flex items-end">
-                      <svg className="w-full h-full" viewBox="0 0 200 60">
+                      <svg className="w-full h-full" viewBox="0 0 200 60" preserveAspectRatio="none">
+                        {/* Grid lines */}
+                        <line x1="0" y1="40" x2="200" y2="40" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        <line x1="0" y1="30" x2="200" y2="30" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        <line x1="0" y1="20" x2="200" y2="20" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        {/* Filled area */}
                         <polyline 
                           points="0,40 40,35 80,30 120,28 160,22 200,18" 
                           fill="none" 
                           stroke="#10b981" 
-                          strokeWidth="2"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         />
+                        <polyline 
+                          points="0,40 40,35 80,30 120,28 160,22 200,18 200,60 0,60" 
+                          fill="url(#gradientAWT)" 
+                          opacity="0.2"
+                        />
+                        <defs>
+                          <linearGradient id="gradientAWT" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#10b981" />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
                       </svg>
                     </div>
                   </div>
@@ -730,13 +851,31 @@ export default function SimulationDashboard() {
                       <span className="text-xs text-green-600">+4.32%</span>
                     </div>
                     <div className="flex-1 h-14 flex items-end">
-                      <svg className="w-full h-full" viewBox="0 0 200 60">
+                      <svg className="w-full h-full" viewBox="0 0 200 60" preserveAspectRatio="none">
+                        {/* Grid lines */}
+                        <line x1="0" y1="48" x2="200" y2="48" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        <line x1="0" y1="36" x2="200" y2="36" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        <line x1="0" y1="24" x2="200" y2="24" stroke="#e5e7eb" strokeWidth="0.5"/>
+                        {/* Filled area */}
                         <polyline 
                           points="0,50 40,48 80,45 120,42 160,38 200,35" 
                           fill="none" 
                           stroke="#10b981" 
-                          strokeWidth="2"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         />
+                        <polyline 
+                          points="0,50 40,48 80,45 120,42 160,38 200,35 200,60 0,60" 
+                          fill="url(#gradientNT)" 
+                          opacity="0.2"
+                        />
+                        <defs>
+                          <linearGradient id="gradientNT" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#10b981" />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
                       </svg>
                     </div>
                   </div>
@@ -769,23 +908,51 @@ export default function SimulationDashboard() {
           </div>
 
           {/* Secondary Metrics */}
-          <div className="grid grid-cols-12 gap-6">
+          <div className="grid grid-cols-12 gap-6 h-auto">
             {/* Network Pressure Mapping */}
             <div className="col-span-6">
-              <div className="bg-white rounded-[32px] shadow-md p-5">
-                <div className="flex items-center gap-2 mb-3 group">
+              <div className="bg-white rounded-[32px] shadow-md p-5 h-full flex flex-col">
+                <div className="flex items-center gap-2 mb-4 group">
                   <h3 className="text-base font-bold text-civiq-dark">Network Pressure Mapping</h3>
                   <div className="relative w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help hover:border-civiq-blue hover:text-civiq-blue transition-colors">
                     i
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-civiq-dark text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">Congestion levels across the network</div>
                   </div>
                 </div>
-                <div className="aspect-square bg-gradient-to-br from-yellow-200 via-orange-300 to-red-400 rounded-[20px] relative overflow-hidden">
-                  <img 
-                    src="https://www.figma.com/api/mcp/asset/ba7168d7-379e-4206-8bc0-c8704ed27949" 
-                    alt="Heatmap" 
-                    className="w-full h-full object-cover opacity-70"
-                  />
+                <div className="flex gap-4 flex-1">
+                  <div className="flex-1 bg-gradient-to-br from-yellow-200 via-orange-300 to-red-400 rounded-[20px] relative overflow-hidden">
+                    <img 
+                      src="https://www.figma.com/api/mcp/asset/ba7168d7-379e-4206-8bc0-c8704ed27949" 
+                      alt="Heatmap" 
+                      className="w-full h-full object-cover opacity-70"
+                    />
+                  </div>
+                  {/* Color bar legend with tick marks */}
+                  <div className="flex gap-2 items-stretch">
+                    {/* Gradient bar */}
+                    <div 
+                      className="w-10 rounded-lg shadow-md"
+                      style={{background: 'linear-gradient(to bottom, #ef4444 0%, #fbbf24 50%, #22c55e 100%)'}}
+                    ></div>
+                    
+                    {/* Tick marks and labels */}
+                    <div className="flex flex-col justify-between">
+                      <p className="text-xs text-gray-500 font-normal">90</p>
+                      <p className="text-xs text-gray-500 font-normal">80</p>
+                      <p className="text-xs text-gray-500 font-normal">70</p>
+                      <p className="text-xs text-gray-500 font-normal">60</p>
+                      <p className="text-xs text-gray-500 font-normal">50</p>
+                      <p className="text-xs text-gray-500 font-normal">40</p>
+                      <p className="text-xs text-gray-500 font-normal">30</p>
+                      <p className="text-xs text-gray-500 font-normal">20</p>
+                      <p className="text-xs text-gray-500 font-normal">10</p>
+                    </div>
+
+                    {/* Vertical label */}
+                    <div className="flex items-center">
+                      <p className="text-xs text-gray-500 font-normal" style={{writingMode: 'vertical-rl', transform: 'rotate(180deg)'}}>Traffic Intensity</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -872,21 +1039,91 @@ export default function SimulationDashboard() {
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-civiq-dark text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">Traffic flow variations over time</div>
                   </div>
                 </div>
+                {/* Legend */}
+                <div className="flex gap-6 mb-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <span className="text-civiq-dark">Queue Length</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-civiq-dark">Waiting Time</span>
+                  </div>
+                </div>
                 <div className="flex-1 flex items-center justify-center">
-                  <svg className="w-full h-full" viewBox="0 0 200 80">
+                  <svg className="w-full h-full" viewBox="0 0 450 200" preserveAspectRatio="xMidYMid meet">
+                    {/* Grid lines - horizontal */}
+                    <line x1="60" y1="30" x2="430" y2="30" stroke="#e5e7eb" strokeWidth="0.5"/>
+                    <line x1="60" y1="70" x2="430" y2="70" stroke="#e5e7eb" strokeWidth="0.5"/>
+                    <line x1="60" y1="110" x2="430" y2="110" stroke="#e5e7eb" strokeWidth="0.5"/>
+                    <line x1="60" y1="150" x2="430" y2="150" stroke="#e5e7eb" strokeWidth="0.5"/>
+                    
+                    {/* Axes */}
+                    <line x1="60" y1="10" x2="60" y2="150" stroke="#d1d5db" strokeWidth="0.8"/>
+                    <line x1="60" y1="150" x2="430" y2="150" stroke="#d1d5db" strokeWidth="0.8"/>
+                    
+                    {/* Y-axis ticks and labels */}
+                    <line x1="55" y1="150" x2="60" y2="150" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="52" y="155" fontSize="10" fill="#999" textAnchor="end">0</text>
+                    
+                    <line x1="55" y1="110" x2="60" y2="110" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="52" y="115" fontSize="10" fill="#999" textAnchor="end">15</text>
+                    
+                    <line x1="55" y1="70" x2="60" y2="70" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="52" y="75" fontSize="10" fill="#999" textAnchor="end">30</text>
+                    
+                    <line x1="55" y1="30" x2="60" y2="30" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="52" y="35" fontSize="10" fill="#999" textAnchor="end">45</text>
+                    
+                    {/* X-axis ticks and labels */}
+                    <line x1="80" y1="150" x2="80" y2="155" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="80" y="168" fontSize="9" fill="#999" textAnchor="middle">2:50</text>
+                    
+                    <line x1="125" y1="150" x2="125" y2="155" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="125" y="168" fontSize="9" fill="#999" textAnchor="middle">5:00</text>
+                    
+                    <line x1="170" y1="150" x2="170" y2="155" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="170" y="168" fontSize="9" fill="#999" textAnchor="middle">7:50</text>
+                    
+                    <line x1="215" y1="150" x2="215" y2="155" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="215" y="168" fontSize="9" fill="#999" textAnchor="middle">10:00</text>
+                    
+                    <line x1="260" y1="150" x2="260" y2="155" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="260" y="168" fontSize="9" fill="#999" textAnchor="middle">12:50</text>
+                    
+                    <line x1="305" y1="150" x2="305" y2="155" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="305" y="168" fontSize="9" fill="#999" textAnchor="middle">15:00</text>
+                    
+                    <line x1="350" y1="150" x2="350" y2="155" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="350" y="168" fontSize="9" fill="#999" textAnchor="middle">17:50</text>
+                    
+                    <line x1="395" y1="150" x2="395" y2="155" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <text x="395" y="168" fontSize="9" fill="#999" textAnchor="middle">20:00</text>
+                    
+                    {/* Queue Length (red) */}
                     <polyline 
-                      points="0,40 30,35 60,30 90,28 120,32 150,38 180,35 200,30" 
+                      points="80,140 125,125 170,100 215,70 260,50 305,65 350,110 395,130" 
                       fill="none" 
                       stroke="#ef4444" 
-                      strokeWidth="2"
-                      strokeDasharray="4 4"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
+                    {/* Waiting Time (orange) */}
                     <polyline 
-                      points="0,45 30,42 60,38 90,36 120,40 150,45 180,42 200,38" 
+                      points="80,138 125,120 170,95 215,75 260,65 305,75 350,105 395,128" 
                       fill="none" 
-                      stroke="#3b82f6" 
-                      strokeWidth="2"
+                      stroke="#f97316" 
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
+                    
+                    {/* Y-axis label */}
+                    <text x="15" y="85" fontSize="9" fill="#999" textAnchor="middle" fontWeight="400" transform="rotate(-90 15 85)">Vehicles / Second</text>
+                    
+                    {/* X-axis label */}
+                    <text x="425" y="185" fontSize="9" fill="#999" textAnchor="end" fontWeight="400">Simulation Time</text>
                   </svg>
                 </div>
               </div>
