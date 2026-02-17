@@ -632,24 +632,23 @@ export default function SimulationDashboard() {
           
           {/* Primary Metrics Container */}
           <div className="bg-white rounded-[32px] shadow-lg p-8 mb-6">
-            <div className="grid grid-cols-12 gap-6">
-              {/* Left Column - Small Metric Cards */}
-              <div className="col-span-5 space-y-6">
-                {/* Average Travel Time */}
-                <div className="bg-gray-50 rounded-[24px] p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-base font-bold text-civiq-dark">Average Travel Time (ATT)</h3>
-                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+            <div className="grid grid-cols-12 gap-6 auto-rows-max">
+              {/* Average Travel Time - Row 1, Left */}
+              <div className="col-span-5">
+                <div className="bg-gray-50 rounded-[24px] p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-sm font-bold text-civiq-dark">Average Travel Time (ATT)</h3>
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-8">
                     <div className="flex-shrink-0">
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-4xl font-bold text-civiq-dark">4.2</p>
-                        <span className="text-sm text-civiq-dark">min</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="text-3xl font-bold text-civiq-dark">4.2</p>
+                        <span className="text-xs text-civiq-dark">min</span>
                       </div>
-                      <span className="text-sm text-green-600">+12.34%</span>
+                      <span className="text-xs text-green-600">+12.34%</span>
                     </div>
-                    <div className="flex-1 h-16 flex items-end">
+                    <div className="flex-1 h-14 flex items-end">
                       <svg className="w-full h-full" viewBox="0 0 200 60">
                         <polyline 
                           points="0,50 40,45 80,40 120,35 160,25 200,20" 
@@ -661,22 +660,35 @@ export default function SimulationDashboard() {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Average Waiting Time */}
-                <div className="bg-gray-50 rounded-[24px] p-6">
+              {/* Learning Convergence - Row 1-2, Right */}
+              <div className="col-span-7 row-span-2">
+                <div className="bg-gray-50 rounded-[24px] p-5 h-full">
                   <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-base font-bold text-civiq-dark">Average Waiting Time</h3>
-                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                    <h3 className="text-base font-bold text-civiq-dark">Learning Convergence</h3>
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="h-48 bg-gradient-to-t from-blue-200 to-transparent opacity-50 rounded-lg" />
+                </div>
+              </div>
+
+              {/* Average Waiting Time - Row 2, Left */}
+              <div className="col-span-5">
+                <div className="bg-gray-50 rounded-[24px] p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-sm font-bold text-civiq-dark">Average Waiting Time</h3>
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                  </div>
+                  <div className="flex items-center gap-8">
                     <div className="flex-shrink-0">
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-4xl font-bold text-civiq-dark">18.5</p>
-                        <span className="text-sm text-civiq-dark">sec</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="text-3xl font-bold text-civiq-dark">18.5</p>
+                        <span className="text-xs text-civiq-dark">sec</span>
                       </div>
-                      <span className="text-sm text-green-600">+22.25%</span>
+                      <span className="text-xs text-green-600">+22.25%</span>
                     </div>
-                    <div className="flex-1 h-16 flex items-end">
+                    <div className="flex-1 h-14 flex items-end">
                       <svg className="w-full h-full" viewBox="0 0 200 60">
                         <polyline 
                           points="0,40 40,35 80,30 120,28 160,22 200,18" 
@@ -688,22 +700,24 @@ export default function SimulationDashboard() {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Network Throughput */}
-                <div className="bg-gray-50 rounded-[24px] p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-base font-bold text-civiq-dark">Network Throughput</h3>
-                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+              {/* Network Throughput - Row 3, Left */}
+              <div className="col-span-5">
+                <div className="bg-gray-50 rounded-[24px] p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-sm font-bold text-civiq-dark">Network Throughput</h3>
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-8">
                     <div className="flex-shrink-0">
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-4xl font-bold text-civiq-dark">1,875</p>
-                        <span className="text-sm text-civiq-dark">veh/hr</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="text-3xl font-bold text-civiq-dark">1,875</p>
+                        <span className="text-xs text-civiq-dark">veh/hr</span>
                       </div>
-                      <span className="text-sm text-green-600">+4.32%</span>
+                      <span className="text-xs text-green-600">+4.32%</span>
                     </div>
-                    <div className="flex-1 h-16 flex items-end">
+                    <div className="flex-1 h-14 flex items-end">
                       <svg className="w-full h-full" viewBox="0 0 200 60">
                         <polyline 
                           points="0,50 40,48 80,45 120,42 160,38 200,35" 
@@ -715,66 +729,38 @@ export default function SimulationDashboard() {
                     </div>
                   </div>
                 </div>
-
-                {/* Real-Time Factor */}
-                <div className="bg-gray-50 rounded-[24px] p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-base font-bold text-civiq-dark">Real-Time Factor</h3>
-                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
-                  </div>
-                  <div className="flex items-center">
-                    <p className="text-4xl font-bold text-civiq-dark">1.5x</p>
-                  </div>
-                </div>
               </div>
 
-              {/* Right Column - Charts */}
-              <div className="col-span-7 space-y-6">
-                {/* Learning Convergence */}
-                <div className="bg-gray-50 rounded-[24px] p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <h3 className="text-xl font-bold text-civiq-dark">Learning Convergence</h3>
-                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+              {/* Average Compute Time - Row 3, Right */}
+              <div className="col-span-7">
+                <div className="bg-gray-50 rounded-[24px] p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-sm font-bold text-civiq-dark">Average Compute Time</h3>
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
                   </div>
-                  <div className="h-56 bg-gradient-to-t from-blue-200 to-transparent opacity-50 rounded-lg" />
-                </div>
-
-                {/* Traffic Wave Pattern */}
-                <div className="bg-gray-50 rounded-[24px] p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <h3 className="text-xl font-bold text-civiq-dark">Traffic Wave Pattern</h3>
-                    <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
-                  </div>
-                  <div className="h-56 flex items-center justify-center">
-                    <svg className="w-full h-full" viewBox="0 0 200 80">
-                      <polyline 
-                        points="0,40 30,35 60,30 90,28 120,32 150,38 180,35 200,30" 
-                        fill="none" 
-                        stroke="#ef4444" 
-                        strokeWidth="2"
-                        strokeDasharray="4 4"
-                      />
-                      <polyline 
-                        points="0,45 30,42 60,38 90,36 120,40 150,45 180,42 200,38" 
-                        fill="none" 
-                        stroke="#3b82f6" 
-                        strokeWidth="2"
-                      />
-                    </svg>
+                  <div className="flex items-center gap-4 h-14">
+                    <div className="flex-shrink-0">
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="text-3xl font-bold text-civiq-dark">22.35</p>
+                        <span className="text-xs text-civiq-dark">ms</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+
           </div>
 
           {/* Secondary Metrics */}
           <div className="grid grid-cols-12 gap-6">
             {/* Network Pressure Mapping */}
             <div className="col-span-6">
-              <div className="bg-white rounded-[32px] shadow-md p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <h3 className="text-xl font-bold text-civiq-dark">Network Pressure Mapping</h3>
-                  <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+              <div className="bg-white rounded-[32px] shadow-md p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-base font-bold text-civiq-dark">Network Pressure Mapping</h3>
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
                 </div>
                 <div className="aspect-square bg-gradient-to-br from-yellow-200 via-orange-300 to-red-400 rounded-[20px] relative overflow-hidden">
                   <img 
@@ -786,22 +772,14 @@ export default function SimulationDashboard() {
               </div>
             </div>
 
-            {/* Right Column - Compute Time & Gauges */}
-            <div className="col-span-6 space-y-6">
-              {/* Average Compute Time */}
-              <div className="bg-white rounded-[32px] shadow-md p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-base font-bold text-civiq-dark">Average Compute Time</h3>
-                  <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
-                </div>
-                <p className="text-3xl font-bold text-civiq-dark text-right">22.35 ms</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
+            {/* Right Column - Gauges & Traffic Wave Pattern */}
+            <div className="col-span-6 flex flex-col gap-5">
+              {/* Environmental Impact Stats */}
+              <div className="grid grid-cols-2 gap-5">
                 {/* Average CO2 Emissions */}
-                <div className="bg-white rounded-[32px] shadow-md p-8">
+                <div className="bg-white rounded-[32px] shadow-md p-6">
                   <div className="text-center">
-                    <div className="relative w-full aspect-square max-w-[180px] mx-auto mb-3">
+                    <div className="relative w-full aspect-square max-w-[150px] mx-auto mb-2">
                       <svg className="w-full h-full -rotate-90">
                         <circle 
                           cx="50%" 
@@ -824,8 +802,8 @@ export default function SimulationDashboard() {
                         />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <p className="text-5xl font-bold text-civiq-dark">142</p>
-                        <p className="text-lg text-civiq-dark">g/km</p>
+                        <p className="text-4xl font-bold text-civiq-dark">142</p>
+                        <p className="text-sm text-civiq-dark">g/km</p>
                       </div>
                     </div>
                     <p className="text-xs italic text-civiq-dark">Average CO2 Emissions per kilometer</p>
@@ -833,9 +811,9 @@ export default function SimulationDashboard() {
                 </div>
 
                 {/* Average Fuel Consumption */}
-                <div className="bg-white rounded-[32px] shadow-md p-8">
+                <div className="bg-white rounded-[32px] shadow-md p-6">
                   <div className="text-center">
-                    <div className="relative w-full aspect-square max-w-[180px] mx-auto mb-3">
+                    <div className="relative w-full aspect-square max-w-[150px] mx-auto mb-2">
                       <svg className="w-full h-full -rotate-90">
                         <circle 
                           cx="50%" 
@@ -858,12 +836,37 @@ export default function SimulationDashboard() {
                         />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <p className="text-5xl font-bold text-civiq-dark">23</p>
-                        <p className="text-lg text-civiq-dark">g/km</p>
+                        <p className="text-4xl font-bold text-civiq-dark">23</p>
+                        <p className="text-sm text-civiq-dark">g/km</p>
                       </div>
                     </div>
                     <p className="text-xs italic text-civiq-dark">Average Fuel Consumption of a Vehicle</p>
                   </div>
+                </div>
+              </div>
+
+              {/* Traffic Wave Pattern - Expanded */}
+              <div className="bg-white rounded-[32px] shadow-md p-5 flex-1 flex flex-col">
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-base font-bold text-civiq-dark">Traffic Wave Pattern</h3>
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                </div>
+                <div className="flex-1 flex items-center justify-center">
+                  <svg className="w-full h-full" viewBox="0 0 200 80">
+                    <polyline 
+                      points="0,40 30,35 60,30 90,28 120,32 150,38 180,35 200,30" 
+                      fill="none" 
+                      stroke="#ef4444" 
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                    />
+                    <polyline 
+                      points="0,45 30,42 60,38 90,36 120,40 150,45 180,42 200,38" 
+                      fill="none" 
+                      stroke="#3b82f6" 
+                      strokeWidth="2"
+                    />
+                  </svg>
                 </div>
               </div>
             </div>
