@@ -1329,6 +1329,62 @@ export default function SimulationDashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* Network Pressure Mapping */}
+              <div className="bg-white rounded-[32px] shadow-lg p-8">
+                <h3 className="text-2xl font-bold text-civiq-dark mb-6">Network Pressure Mapping</h3>
+                
+                {/* Legend */}
+                <div className="mb-8">
+                  <p className="text-sm text-civiq-dark text-center mb-3">Traffic Intensity</p>
+                  <div className="relative w-full h-14">
+                    {/* Gradient bar */}
+                    <div className="absolute inset-0 rounded-2xl" style={{
+                      background: 'linear-gradient(to right, #ef4444 0%, #f97316 12.5%, #fbbf24 25%, #facc15 37.5%, #a3e635 50%, #4ade80 62.5%, #22c55e 75%, #10b981 87.5%, #059669 100%)'
+                    }}></div>
+                    
+                    {/* Scale numbers */}
+                    <div className="absolute -bottom-6 left-0 text-xs text-civiq-dark">90</div>
+                    <div className="absolute -bottom-6 left-[11.11%] text-xs text-civiq-dark">80</div>
+                    <div className="absolute -bottom-6 left-[22.22%] text-xs text-civiq-dark">70</div>
+                    <div className="absolute -bottom-6 left-[33.33%] text-xs text-civiq-dark">60</div>
+                    <div className="absolute -bottom-6 left-[44.44%] text-xs text-civiq-dark">50</div>
+                    <div className="absolute -bottom-6 left-[55.55%] text-xs text-civiq-dark">40</div>
+                    <div className="absolute -bottom-6 left-[66.66%] text-xs text-civiq-dark">30</div>
+                    <div className="absolute -bottom-6 left-[77.77%] text-xs text-civiq-dark">20</div>
+                    <div className="absolute -bottom-6 right-0 text-xs text-civiq-dark">10</div>
+                  </div>
+                </div>
+                
+                {/* Heatmaps */}
+                <div className="grid grid-cols-2 gap-8 mt-12">
+                  {/* Superior Algorithm Heatmap */}
+                  <div>
+                    <h4 className="text-2xl font-bold text-civiq-dark text-center mb-4">
+                      {algorithmLabels[superiorAlgo] || superiorAlgo}
+                    </h4>
+                    <div className="relative aspect-[3/4] border-2 border-civiq-dark rounded-lg overflow-hidden bg-gray-100">
+                      {/* Placeholder - will be replaced with actual heatmap visualization */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <p className="text-sm text-gray-500">Heatmap Visualization</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Inferior Algorithm Heatmap */}
+                  <div>
+                    <h4 className="text-2xl font-bold text-civiq-dark text-center mb-4">
+                      {algorithmLabels[inferiorAlgo] || inferiorAlgo}
+                    </h4>
+                    <div className="relative aspect-[3/4] border-2 border-civiq-dark rounded-lg overflow-hidden bg-gray-100">
+                      {/* Placeholder - will be replaced with actual heatmap visualization */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <p className="text-sm text-gray-500">Heatmap Visualization</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </>
           ) : (
           <>
