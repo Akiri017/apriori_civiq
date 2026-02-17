@@ -718,6 +718,120 @@ export default function SimulationDashboard() {
           {view === 'comparative' ? (
             /* Comparative Metrics Layout */
             <>
+              {/* Performance Profile & Explanation */}
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                {/* Performance Profile Spider Chart */}
+                <div className="bg-white rounded-[32px] shadow-lg p-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-civiq-dark">Performance Profile</h3>
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">
+                        i
+                      </div>
+                    </div>
+                    
+                    {/* Legend - Top Right */}
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#8b5cf6]"></div>
+                        <span className="text-xs font-medium text-civiq-dark">{algorithmLabels[superiorAlgo] || superiorAlgo}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#ef4444]"></div>
+                        <span className="text-xs text-gray-600">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="relative w-full h-[280px] flex items-center justify-center">
+                    <svg viewBox="0 0 400 400" className="w-auto h-full max-w-[280px]">
+                      {/* Background circles */}
+                      <circle cx="200" cy="200" r="160" fill="none" stroke="#f1f1f1" strokeWidth="1"/>
+                      <circle cx="200" cy="200" r="120" fill="none" stroke="#f1f1f1" strokeWidth="1"/>
+                      <circle cx="200" cy="200" r="80" fill="none" stroke="#f1f1f1" strokeWidth="1"/>
+                      <circle cx="200" cy="200" r="40" fill="none" stroke="#f1f1f1" strokeWidth="1"/>
+                      
+                      {/* Axis lines - 7 metrics evenly distributed */}
+                      <line x1="200" y1="200" x2="200" y2="40" stroke="#f1f1f1" strokeWidth="1"/>
+                      <line x1="200" y1="200" x2="325" y2="100" stroke="#f1f1f1" strokeWidth="1"/>
+                      <line x1="200" y1="200" x2="356" y2="164" stroke="#f1f1f1" strokeWidth="1"/>
+                      <line x1="200" y1="200" x2="269" y2="344" stroke="#f1f1f1" strokeWidth="1"/>
+                      <line x1="200" y1="200" x2="131" y2="344" stroke="#f1f1f1" strokeWidth="1"/>
+                      <line x1="200" y1="200" x2="44" y2="164" stroke="#f1f1f1" strokeWidth="1"/>
+                      <line x1="200" y1="200" x2="75" y2="100" stroke="#f1f1f1" strokeWidth="1"/>
+                      
+                      {/* Scale labels */}
+                      <text x="200" y="205" fontSize="12" fill="#f1f1f1" textAnchor="middle" fontWeight="bold">20</text>
+                      <text x="200" y="165" fontSize="12" fill="#f1f1f1" textAnchor="middle" fontWeight="bold">40</text>
+                      <text x="200" y="125" fontSize="12" fill="#f1f1f1" textAnchor="middle" fontWeight="bold">60</text>
+                      <text x="200" y="85" fontSize="12" fill="#f1f1f1" textAnchor="middle" fontWeight="bold">80</text>
+                      <text x="200" y="45" fontSize="12" fill="#f1f1f1" textAnchor="middle" fontWeight="bold">100</text>
+                      
+                      {/* Superior algorithm polygon (purple) - Hierarchical QMIX */}
+                      <polygon 
+                        points="200,64 231,175 247,189 224,250 180,241 153,189 106,125"
+                        fill="#8b5cf6"
+                        fillOpacity="0.3"
+                        stroke="#8b5cf6"
+                        strokeWidth="3"
+                        strokeLinejoin="round"
+                      />
+                      
+                      {/* Inferior algorithm polygon (red) - Selfish Routing */}
+                      <polygon 
+                        points="200,104 281,135 309,175 235,272 148,308 88,174 131,145"
+                        fill="#ef4444"
+                        fillOpacity="0.3"
+                        stroke="#ef4444"
+                        strokeWidth="3"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    
+                    {/* Metric labels - aligned with 7 axes */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 text-xs font-medium text-civiq-dark">
+                      Throughput
+                    </div>
+                    <div className="absolute top-[10%] right-[8%] text-xs font-medium text-civiq-dark">
+                      Waiting Time
+                    </div>
+                    <div className="absolute top-[30%] right-0 text-xs font-medium text-civiq-dark">
+                      Travel Time
+                    </div>
+                    <div className="absolute bottom-[8%] right-[18%] text-xs font-medium text-civiq-dark">
+                      Compute Time
+                    </div>
+                    <div className="absolute bottom-[8%] left-[18%] text-xs font-medium text-civiq-dark">
+                      CO2 Emissions
+                    </div>
+                    <div className="absolute top-[30%] left-0 text-xs font-medium text-civiq-dark text-right">
+                      Fuel Consumption
+                    </div>
+                    <div className="absolute top-[10%] left-[8%] text-xs font-medium text-civiq-dark text-right">
+                      Real Time Factor
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Explanation */}
+                <div className="bg-white rounded-[32px] shadow-lg p-8 flex flex-col justify-center">
+                  <h3 className="text-xl font-bold text-civiq-dark mb-4">Understanding the Results</h3>
+                  <p className="text-civiq-dark leading-relaxed mb-4">
+                    The Performance Profile provides a comprehensive view of how different traffic management algorithms perform across multiple dimensions. The radar chart visualizes seven key metrics simultaneously, allowing for quick comparative analysis.
+                  </p>
+                  <p className="text-civiq-dark leading-relaxed">
+                    <span className="font-bold text-[#8b5cf6]">{algorithmLabels[superiorAlgo] || superiorAlgo}</span> demonstrates superior performance across most metrics, particularly in reducing travel time and emissions while maintaining network efficiency. In contrast, <span className="font-bold text-[#ef4444]">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</span> shows comparatively lower performance but requires less computational resources. The optimal choice depends on your priorities: environmental impact, user experience, or system scalability.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Divider */}
+              <div className="flex items-center gap-4 my-10">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Detailed Metrics</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+              </div>
+              
               <div className="bg-white rounded-[32px] shadow-lg p-8 mb-6">
                 <div className="grid grid-cols-12 gap-6">
                   {/* Left Column - ATT, AWT, Network Throughput */}
