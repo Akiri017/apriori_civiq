@@ -52,6 +52,9 @@ export default function SimulationDashboard() {
   const [isDragging2, setIsDragging2] = useState(false)
   const [dragStart2, setDragStart2] = useState({ x: 0, y: 0 })
   
+  // Tooltip state
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
+  
   const mapSize = searchParams.get('mapSize') || ''
   const trafficScale = searchParams.get('trafficScale') || ''
   const view = searchParams.get('view') || ''
@@ -670,6 +673,235 @@ export default function SimulationDashboard() {
         <div className="max-w-[1400px] mx-auto px-6">
           <h2 className="font-bold text-civiq-dark text-[28px] mb-8">Simulation Metrics</h2>
           
+          {view === 'comparative' ? (
+            /* Comparative Metrics Layout */
+            <>
+              <div className="bg-white rounded-[32px] shadow-lg p-8 mb-6">
+                <div className="grid grid-cols-12 gap-6">
+                  {/* Left Column - ATT, AWT, Network Throughput */}
+                  <div className="col-span-5 space-y-6">
+                    {/* Average Travel Time */}
+                    <div className="bg-gray-50 rounded-[24px] p-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2 relative">
+                          <h3 className="text-base font-bold text-civiq-dark">Average Travel Time (ATT)</h3>
+                          <div 
+                            className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help"
+                            onMouseEnter={() => setActiveTooltip('att')}
+                            onMouseLeave={() => setActiveTooltip(null)}
+                          >
+                            i
+                          </div>
+                          {activeTooltip === 'att' && (
+                            <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg">
+                              The average time taken for vehicles to complete their journey from origin to destination.
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                            <path d="M6 2L4 6h4L6 2z"/>
+                          </svg>
+                          +12.34%
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="flex-shrink-0 flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
+                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[algorithm1] || algorithm1}</p>
+                            </div>
+                            <div className="flex items-baseline gap-1.5">
+                              <p className="text-3xl font-bold text-[#1877f2]">4.2</p>
+                              <span className="text-sm text-[#1877f2]">mins</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[algorithm2] || algorithm2}</p>
+                            <p className="text-sm text-gray-600">6.7 mins</p>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 h-16 w-32 flex items-end">
+                          <svg className="w-full h-full" viewBox="0 0 130 60" preserveAspectRatio="none">
+                            <polyline points="0,50 30,45 60,40 90,35 120,30" fill="none" stroke="#10b981" strokeWidth="2.5"/>
+                            <polyline points="0,45 30,43 60,40 90,38 120,36" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Average Waiting Time */}
+                    <div className="bg-gray-50 rounded-[24px] p-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2 relative">
+                          <h3 className="text-base font-bold text-civiq-dark">Average Waiting Time</h3>
+                          <div 
+                            className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help"
+                            onMouseEnter={() => setActiveTooltip('awt')}
+                            onMouseLeave={() => setActiveTooltip(null)}
+                          >
+                            i
+                          </div>
+                          {activeTooltip === 'awt' && (
+                            <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg">
+                              The average time vehicles spend waiting at intersections and in traffic congestion.
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                            <path d="M6 2L4 6h4L6 2z"/>
+                          </svg>
+                          +22.25%
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="flex-shrink-0 flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
+                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[algorithm1] || algorithm1}</p>
+                            </div>
+                            <div className="flex items-baseline gap-1.5">
+                              <p className="text-3xl font-bold text-[#1877f2]">18.5</p>
+                              <span className="text-sm text-[#1877f2]">sec</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[algorithm2] || algorithm2}</p>
+                            <p className="text-sm text-gray-600">35 sec</p>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 h-16 w-32 flex items-end">
+                          <svg className="w-full h-full" viewBox="0 0 130 60" preserveAspectRatio="none">
+                            <polyline points="0,55 30,50 60,45 90,40 120,35" fill="none" stroke="#10b981" strokeWidth="2.5"/>
+                            <polyline points="0,48 30,46 60,44 90,42 120,40" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Network Throughput */}
+                    <div className="bg-gray-50 rounded-[24px] p-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2 relative">
+                          <h3 className="text-base font-bold text-civiq-dark">Network Throughput</h3>
+                          <div 
+                            className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help"
+                            onMouseEnter={() => setActiveTooltip('throughput')}
+                            onMouseLeave={() => setActiveTooltip(null)}
+                          >
+                            i
+                          </div>
+                          {activeTooltip === 'throughput' && (
+                            <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg">
+                              The number of vehicles that successfully pass through the network per hour.
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                            <path d="M6 2L4 6h4L6 2z"/>
+                          </svg>
+                          +8.32%
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="flex-shrink-0 flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
+                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[algorithm1] || algorithm1}</p>
+                            </div>
+                            <div className="flex items-baseline gap-1.5">
+                              <p className="text-3xl font-bold text-[#1877f2]">1,875</p>
+                              <span className="text-sm text-[#1877f2]">veh/hr</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[algorithm2] || algorithm2}</p>
+                            <p className="text-sm text-gray-600">1,928 veh/hr</p>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 h-16 w-32 flex items-end">
+                          <svg className="w-full h-full" viewBox="0 0 130 60" preserveAspectRatio="none">
+                            <polyline points="0,52 30,50 60,48 90,46 120,44" fill="none" stroke="#10b981" strokeWidth="2.5"/>
+                            <polyline points="0,48 30,47 60,46 90,45 120,44" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column - Learning Convergence & Traffic Wave Pattern */}
+                  <div className="col-span-7 space-y-6">
+                    {/* Learning Convergence - Placeholder */}
+                    <div className="bg-gray-50 rounded-[24px] p-6 h-[280px]">
+                      <div className="flex items-center gap-2 mb-4">
+                        <h3 className="text-xl font-bold text-civiq-dark">Learning Convergence</h3>
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                      </div>
+                      <div className="h-full flex items-center justify-center text-gray-400">
+                        <p>Chart Placeholder</p>
+                      </div>
+                    </div>
+
+                    {/* Traffic Wave Pattern - Placeholder */}
+                    <div className="bg-gray-50 rounded-[24px] p-6 h-[280px]">
+                      <div className="flex items-center gap-2 mb-4">
+                        <h3 className="text-xl font-bold text-civiq-dark">Traffic Wave Pattern</h3>
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                      </div>
+                      <div className="h-full flex items-center justify-center text-gray-400">
+                        <p>Chart Placeholder</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CO2 and Fuel Consumption - 4 gauges */}
+              <div className="grid grid-cols-4 gap-6 mb-6">
+                {[
+                  { label: 'Avg. CO2 Emissions', algo: algorithm1, value: 142, unit: 'g/km', color: '#7FE47E' },
+                  { label: 'Avg. CO2 Emissions', algo: algorithm2, value: 420, unit: 'g/km', color: '#FF718B' },
+                  { label: 'Avg. Fuel Consumption', algo: algorithm1, value: 23, unit: 'g/km', color: '#04CE00' },
+                  { label: 'Avg. Fuel Consumption', algo: algorithm2, value: 67, unit: 'g/km', color: '#FF718B' }
+                ].map((item, index) => (
+                  <div key={index} className="bg-white rounded-[32px] shadow-md p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-sm font-bold text-civiq-dark">{item.label}</h3>
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">i</div>
+                    </div>
+                    <p className="text-xs italic text-civiq-dark mb-4">{algorithmLabels[item.algo] || item.algo}</p>
+                    <div className="relative w-full aspect-square max-w-[140px] mx-auto mb-3">
+                      <svg className="w-full h-full -rotate-90">
+                        <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#e5e7eb" strokeWidth="14"/>
+                        <circle 
+                          cx="50%" 
+                          cy="50%" 
+                          r="45%" 
+                          fill="none" 
+                          stroke={item.color} 
+                          strokeWidth="14"
+                          strokeDasharray="282.7"
+                          strokeDashoffset={282.7 * (1 - item.value / 500)}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <p className="text-3xl font-bold text-civiq-dark">{item.value}</p>
+                        <p className="text-sm text-civiq-dark">{item.unit}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+          <>
+          {/* Focused Mode - Original Metrics Layout */}
           {/* Primary Metrics Container */}
           <div className="bg-white rounded-[32px] shadow-lg p-8 mb-6">
             <div className="grid grid-cols-12 gap-2 auto-rows-max">
@@ -1064,6 +1296,8 @@ export default function SimulationDashboard() {
               </div>
             </div>
           </div>
+          </>
+          )}
         </div>
       </section>
 
