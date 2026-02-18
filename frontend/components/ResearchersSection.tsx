@@ -1,11 +1,13 @@
 'use client'
 
+import { IconUser } from './icons'
+
 interface Researcher {
   id: number
   name: string
   role: string
   email: string
-  avatarUrl: string
+  avatarColor: string
   avatarAlt: string
 }
 
@@ -15,7 +17,7 @@ const researchers: Researcher[] = [
     name: 'Kristian Bautista',
     role: 'Project Manager',
     email: 'kristiandavidbautista@gmail.com',
-    avatarUrl: 'http://localhost:3845/assets/f111a4d9e98c2f1849285d198126666303e67f65.png',
+    avatarColor: 'bg-civiq-purple',
     avatarAlt: '3D Avatar - Kristian David Bautista',
   },
   {
@@ -23,7 +25,7 @@ const researchers: Researcher[] = [
     name: 'Angel Letada',
     role: 'SUMO Engineer',
     email: 'angel.letada1205@gmail.com',
-    avatarUrl: 'http://localhost:3845/assets/eaa320717b7e77fd08d1bdaf9802cc375eb36366.png',
+    avatarColor: 'bg-civiq-blue',
     avatarAlt: '3D Avatar - Angel Letada',
   },
   {
@@ -31,7 +33,7 @@ const researchers: Researcher[] = [
     name: 'Michael Pascual',
     role: 'SUMO Engineer',
     email: 'michaelkevinpascual47@gmail.com',
-    avatarUrl: 'http://localhost:3845/assets/5f8ea6b9caf08d167684ed154ad8a85f97b6913b.png',
+    avatarColor: 'bg-[#8B5FBF]',
     avatarAlt: '3D Avatar - Michael Pascual',
   },
   {
@@ -39,7 +41,7 @@ const researchers: Researcher[] = [
     name: 'Marianne Santos',
     role: 'Software Engineer',
     email: 'mariannesantos174@gmail.com',
-    avatarUrl: 'http://localhost:3845/assets/e61b32a6b96823a8b0214ef17a3aac015a2ed382.png',
+    avatarColor: 'bg-[#5DADE2]',
     avatarAlt: '3D Avatar - Marianne Santos',
   },
 ]
@@ -58,12 +60,8 @@ export const ResearchersSection = () => {
             className="flex flex-col items-center"
           >
             {/* Avatar */}
-            <div className="relative size-[140px] rounded-full overflow-hidden bg-white shadow-[0px_8px_16px_0px_rgba(0,0,0,0.15)] mb-8 border-4 border-white hover:shadow-[0px_12px_24px_0px_rgba(0,0,0,0.2)] transition-shadow">
-              <img
-                alt={researcher.avatarAlt}
-                className="object-cover size-full"
-                src={researcher.avatarUrl}
-              />
+            <div className={`relative size-[140px] rounded-full overflow-hidden ${researcher.avatarColor} shadow-[0px_8px_16px_0px_rgba(0,0,0,0.15)] mb-8 border-4 border-white hover:shadow-[0px_12px_24px_0px_rgba(0,0,0,0.2)] transition-shadow flex items-center justify-center`}>
+              <IconUser className="text-white" size={64} />
             </div>
 
             {/* Card */}
