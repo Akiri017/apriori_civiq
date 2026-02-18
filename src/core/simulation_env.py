@@ -8,10 +8,18 @@ import os
 from configs.config_loader import CONFIG
 
 class CiviqEnv:
+<<<<<<< HEAD
+    def __init__(self, scenario_name="default"):
+        self.step_count = 0
+        self.connection_label = "civiq_sim"
+        self.traci_conn = None
+        self.scenario_name = scenario_name
+=======
     def __init__(self):
         self.step_count = 0
         self.connection_label = "civiq_sim"
         self.traci_conn = None
+>>>>>>> 474b73e016da591880f557dd0ef53a9fb2d76c9e
         
         # 1. Resolve Map Path
         # We look for the .sumocfg file inside the map folder defined in YAML
@@ -21,15 +29,47 @@ class CiviqEnv:
         if not os.path.exists(sumo_cfg):
              sys.exit(f">>> ERROR: osm.sumocfg not found in {map_folder}")
 
+<<<<<<< HEAD
+        # 1.5 Create data directory if it doesn't exist (for SUMO output files)
+        data_dir = os.path.join(map_folder, "data")
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+            print(f">>> Created data directory: {data_dir}")
+
         # 2. Build Command from YAML settings
+        # Use absolute paths for output files to avoid directory issues
+        tripinfo_output = os.path.join(data_dir, f"tripinfo_{scenario_name}.xml")
+        summary_output = os.path.join(data_dir, f"summary_{scenario_name}.xml")
+        stats_output = os.path.join(data_dir, f"stats_{scenario_name}.xml")
+        
+        # Get the route file from CONFIG and resolve it to absolute path
+        route_file = CONFIG['network'].get('route_file', '')
+        if route_file:
+            route_file = os.path.join(map_folder, route_file)
+        
+=======
+        # 2. Build Command from YAML settings
+>>>>>>> 474b73e016da591880f557dd0ef53a9fb2d76c9e
         self.sumo_cmd = [
             "sumo-gui",
             "-c", sumo_cfg,
             "--step-length", str(CONFIG['simulation']['step_length']),
             "--time-to-teleport", str(CONFIG['simulation']['teleport_time']),
             "--no-step-log", "true",
+<<<<<<< HEAD
+            "--start", "true",
+            "--tripinfo-output", tripinfo_output,
+            "--summary-output", summary_output,
+            "--statistic-output", stats_output
+        ]
+        
+        # Override route files from the config (this overrides what's in osm.sumocfg)
+        if route_file:
+            self.sumo_cmd.extend(["--route-files", route_file])
+=======
             "--start", "true"
         ]
+>>>>>>> 474b73e016da591880f557dd0ef53a9fb2d76c9e
 
     def start(self):
         try:

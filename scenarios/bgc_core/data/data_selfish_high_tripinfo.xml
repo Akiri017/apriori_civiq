@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<<<<<<< HEAD
+<!-- generated on 2026-02-17T18:37:53.651677+08:00 by Eclipse SUMO GUI 1.25.0
+=======
 <!-- generated on 2026-02-04T14:15:40.943507+08:00 by Eclipse SUMO GUI 1.25.0
+>>>>>>> 474b73e016da591880f557dd0ef53a9fb2d76c9e
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -44,6 +48,8 @@
 -->
 
 <tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
+<<<<<<< HEAD
+=======
     <tripinfo id="15" depart="11.00" departLane="744999974#1_1" departPos="4.60" departSpeed="0.00" departDelay="0.50" arrival="18.00" arrivalLane="-1279681436#0_0" arrivalPos="23.22" arrivalSpeed="12.54" duration="7.00" routeLength="50.59" waitingTime="0.00" waitingCount="0" stopTime="0.00" timeLoss="2.98" rerouteNo="0" devices="tripinfo_15 routing_15 emissions_15" vType="thesis_car" speedFactor="0.93" vaporized="">
         <emissions CO_abs="873.60" CO2_abs="39309.62" HC_abs="4.91" PMx_abs="0.80" NOx_abs="16.92" fuel_abs="12538.00" electricity_abs="0.00"/>
     </tripinfo>
@@ -485,4 +491,5 @@
     <tripinfo id="182" depart="128.00" departLane="-745055614#1_1" departPos="4.60" departSpeed="0.00" departDelay="0.60" arrival="215.00" arrivalLane="27788646#3_0" arrivalPos="14.01" arrivalSpeed="20.41" duration="87.00" routeLength="353.64" waitingTime="47.00" waitingCount="2" stopTime="0.00" timeLoss="68.44" rerouteNo="1" devices="tripinfo_182 routing_182 emissions_182" vType="thesis_car" speedFactor="1.03" vaporized="">
         <emissions CO_abs="11976.55" CO2_abs="339202.21" HC_abs="62.61" PMx_abs="7.58" NOx_abs="149.13" fuel_abs="108192.40" electricity_abs="0.00"/>
     </tripinfo>
+>>>>>>> 474b73e016da591880f557dd0ef53a9fb2d76c9e
 </tripinfos>
