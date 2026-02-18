@@ -142,7 +142,7 @@ export const AboutSection = () => {
         <div className="flex justify-center gap-8 mb-8">
           {/* ACT */}
           <div 
-            className="bg-white rounded-[24px] shadow-md p-6 w-[200px] h-[200px] hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col items-center justify-between relative"
+            className="bg-white rounded-[24px] shadow-md p-6 w-[240px] h-[200px] hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col items-center justify-between relative"
             onMouseEnter={() => setHoveredTooltip('act')}
             onMouseLeave={() => setHoveredTooltip(null)}
           >
@@ -173,7 +173,7 @@ export const AboutSection = () => {
 
           {/* ATT */}
           <div 
-            className="bg-white rounded-[24px] shadow-md p-6 w-[200px] h-[200px] hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col items-center justify-between relative"
+            className="bg-white rounded-[24px] shadow-md p-6 w-[240px] h-[200px] hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col items-center justify-between relative"
             onMouseEnter={() => setHoveredTooltip('att')}
             onMouseLeave={() => setHoveredTooltip(null)}
           >
@@ -210,7 +210,7 @@ export const AboutSection = () => {
 
           {/* Network Throughput */}
           <div 
-            className="bg-white rounded-[24px] shadow-md p-6 w-[200px] h-[200px] hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col items-center justify-between relative"
+            className="bg-white rounded-[24px] shadow-md p-6 w-[240px] h-[200px] hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col items-center justify-between relative"
             onMouseEnter={() => setHoveredTooltip('throughput')}
             onMouseLeave={() => setHoveredTooltip(null)}
           >

@@ -997,7 +997,7 @@ export default function SimulationDashboard() {
               <div className={`bg-white rounded-[32px] shadow-lg p-8 mb-6 transition-all duration-700 delay-200 hover:shadow-xl ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 <div className="grid grid-cols-12 gap-6">
                   {/* Left Column - ATT, AWT, Network Throughput */}
-                  <div className="col-span-5 space-y-6">
+                  <div className="col-span-6 space-y-6">
                     {/* Average Travel Time */}
                     <div className="bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                       <div className="flex items-center justify-between mb-3">
@@ -1023,12 +1023,12 @@ export default function SimulationDashboard() {
                           +12.34%
                         </div>
                       </div>
-                      <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-10">
                         <div className="flex-shrink-0 flex-1">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
-                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
+                              <p className="text-lg font-bold text-[#1877f2] whitespace-nowrap">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
                             </div>
                             <div className="flex items-baseline gap-1.5">
                               <p className="text-3xl font-bold text-[#1877f2]">4.2</p>
@@ -1036,7 +1036,7 @@ export default function SimulationDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
+                            <p className="text-sm text-gray-600 ml-5 whitespace-nowrap">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
                             <p className="text-sm text-gray-600">6.7 mins</p>
                           </div>
                         </div>
@@ -1074,12 +1074,12 @@ export default function SimulationDashboard() {
                           +22.25%
                         </div>
                       </div>
-                      <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-10">
                         <div className="flex-shrink-0 flex-1">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
-                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
+                              <p className="text-lg font-bold text-[#1877f2] whitespace-nowrap">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
                             </div>
                             <div className="flex items-baseline gap-1.5">
                               <p className="text-3xl font-bold text-[#1877f2]">18.5</p>
@@ -1087,7 +1087,7 @@ export default function SimulationDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
+                            <p className="text-sm text-gray-600 ml-5 whitespace-nowrap">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
                             <p className="text-sm text-gray-600">35 sec</p>
                           </div>
                         </div>
@@ -1125,12 +1125,12 @@ export default function SimulationDashboard() {
                           +8.32%
                         </div>
                       </div>
-                      <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-10">
                         <div className="flex-shrink-0 flex-1">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <span className="w-3 h-3 rounded-full bg-[#1877f2]"></span>
-                              <p className="text-lg font-bold text-[#1877f2]">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
+                              <p className="text-lg font-bold text-[#1877f2] whitespace-nowrap">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
                             </div>
                             <div className="flex items-baseline gap-1.5">
                               <p className="text-3xl font-bold text-[#1877f2]">1,875</p>
@@ -1138,7 +1138,7 @@ export default function SimulationDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600 ml-5">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
+                            <p className="text-sm text-gray-600 ml-5 whitespace-nowrap">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
                             <p className="text-sm text-gray-600">1,928 veh/hr</p>
                           </div>
                         </div>
@@ -1153,7 +1153,7 @@ export default function SimulationDashboard() {
                   </div>
 
                   {/* Right Column - Traffic Wave Pattern & Compute Time */}
-                  <div className="col-span-7 space-y-6">
+                  <div className="col-span-6 space-y-6">
                     {/* Traffic Wave Pattern */}
                     <div className="bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                       <div className="flex items-center justify-between mb-6">
@@ -1176,30 +1176,30 @@ export default function SimulationDashboard() {
                         {/* Legend - Grouped by Algorithm */}
                         <div className="flex flex-col gap-1">
                           {/* Superior Algorithm */}
-                          <div className="flex items-center gap-4">
-                            <p className="text-[15px] font-bold text-civiq-dark min-w-[120px]">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-3">
+                            <p className="text-xs font-bold text-civiq-dark min-w-[100px]">{algorithmLabels[superiorAlgo] || superiorAlgo}</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 rounded-full bg-[#ef4444]"></div>
-                                <p className="text-sm text-[#615e83]">Queue Length</p>
+                                <p className="text-xs text-[#615e83]">Queue Length</p>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 rounded-full bg-[#f97316]"></div>
-                                <p className="text-sm text-[#615e83]">Waiting Time</p>
+                                <p className="text-xs text-[#615e83]">Waiting Time</p>
                               </div>
                             </div>
                           </div>
                           {/* Inferior Algorithm */}
-                          <div className="flex items-center gap-4">
-                            <p className="text-[15px] font-bold text-civiq-dark min-w-[120px]">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-3">
+                            <p className="text-xs font-bold text-civiq-dark min-w-[100px]">{algorithmLabels[inferiorAlgo] || inferiorAlgo}</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 rounded-full bg-[#3b82f6]"></div>
-                                <p className="text-sm text-[#615e83]">Queue Length</p>
+                                <p className="text-xs text-[#615e83]">Queue Length</p>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 rounded-full bg-[#1e40af]"></div>
-                                <p className="text-sm text-[#615e83]">Waiting Time</p>
+                                <p className="text-xs text-[#615e83]">Waiting Time</p>
                               </div>
                             </div>
                           </div>
