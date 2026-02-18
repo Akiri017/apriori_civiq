@@ -20,7 +20,7 @@ export const Header = () => {
           </a>
 
           <div className="flex items-center gap-6">
-            <a href="#about" className="font-medium text-[15px] text-civiq-dark hover:text-civiq-purple transition-colors">
+            <a href="/#about" className="font-medium text-[15px] text-civiq-dark hover:text-civiq-purple transition-colors">
               About Civiq
             </a>
             <Button variant="primary">Contact Us</Button>

@@ -1216,17 +1216,13 @@ export default function SimulationDashboard() {
                   <div className="flex items-center gap-2 mb-6">
                     <h3 className="text-base font-bold text-civiq-dark">Average CO2 Emissions</h3>
                     <div 
-                      className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help"
-                      onMouseEnter={() => setActiveTooltip('co2')}
-                      onMouseLeave={() => setActiveTooltip(null)}
+                      className="relative w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help group"
                     >
                       i
-                    </div>
-                    {activeTooltip === 'co2' && (
-                      <div className="absolute mt-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg">
+                      <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none">
                         Carbon dioxide emissions per kilometer traveled. Lower values indicate better environmental performance.
                       </div>
-                    )}
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-6">
@@ -1294,17 +1290,13 @@ export default function SimulationDashboard() {
                   <div className="flex items-center gap-2 mb-6">
                     <h3 className="text-base font-bold text-civiq-dark">Average Fuel Consumption</h3>
                     <div 
-                      className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help"
-                      onMouseEnter={() => setActiveTooltip('fuel')}
-                      onMouseLeave={() => setActiveTooltip(null)}
+                      className="relative w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help group"
                     >
                       i
-                    </div>
-                    {activeTooltip === 'fuel' && (
-                      <div className="absolute mt-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg">
+                      <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none">
                         Fuel consumed per kilometer traveled. Lower values indicate better fuel efficiency.
                       </div>
-                    )}
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-6">
