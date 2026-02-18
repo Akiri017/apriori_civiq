@@ -1362,7 +1362,15 @@ export default function SimulationDashboard() {
 
               {/* Network Pressure Mapping */}
               <div className="bg-white rounded-[32px] shadow-lg p-8">
-                <h3 className="text-2xl font-bold text-civiq-dark mb-6">Network Pressure Mapping</h3>
+                <div className="flex items-center gap-2 mb-6">
+                  <h3 className="text-2xl font-bold text-civiq-dark">Network Pressure Mapping</h3>
+                  <div className="relative w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help group">
+                    i
+                    <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none">
+                      Visualizes congestion levels across the road network. Red indicates high traffic intensity, while green shows free-flowing areas.
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Legend */}
                 <div className="mb-8">
