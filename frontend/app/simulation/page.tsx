@@ -1551,14 +1551,14 @@ export default function SimulationDashboard() {
           ) : (
           <>
           {/* Focused Mode - Original Metrics Layout */}
-          {/* Primary Metrics Container */}
-          <div className="bg-white rounded-[32px] shadow-lg p-8 mb-6">
-            <div className="grid grid-cols-12 gap-2 auto-rows-max">
+          {/* Single Container with Two Sections */}
+          <div className={`bg-white rounded-[32px] shadow-lg p-8 transition-all duration-700 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} hover:shadow-xl`}>
+            <div className="grid grid-cols-12 gap-8 auto-rows-max">
               {/* Left Column - Three Metrics Stacked */}
-              <div className="col-span-5 row-span-3 flex flex-col gap-1">
+              <div className="col-span-5 row-span-3 flex flex-col gap-4">
                 {/* Average Travel Time */}
-                <div className="flex-1 bg-gray-50 rounded-[24px] p-5">
-                  <div className="flex items-center gap-2 mb-1 group">
+                <div className="flex-1 bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
+                  <div className="flex items-center gap-2 mb-3 group">
                     <h3 className="text-sm font-bold text-civiq-dark">Average Travel Time (ATT)</h3>
                     <div className="relative w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help hover:border-civiq-blue hover:text-civiq-blue transition-colors">
                       i
@@ -1571,7 +1571,7 @@ export default function SimulationDashboard() {
                         <p className="text-3xl font-bold text-civiq-dark">{metrics.averageTravelTime}</p>
                         <span className="text-xs text-civiq-dark">min</span>
                       </div>
-                      <span className="text-xs text-green-600">+12.34%</span>
+                      <span className="text-xs text-green-600 animate-pulse">+12.34%</span>
                     </div>
                     <div className="flex-1 h-14 flex items-end">
                       <svg className="w-full h-full" viewBox="0 0 200 60" preserveAspectRatio="none">
@@ -1592,8 +1592,8 @@ export default function SimulationDashboard() {
                 </div>
 
                 {/* Average Waiting Time */}
-                <div className="flex-1 bg-gray-50 rounded-[24px] p-4">
-                  <div className="flex items-center gap-2 mb-1 group">
+                <div className="flex-1 bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
+                  <div className="flex items-center gap-2 mb-3 group">
                     <h3 className="text-sm font-bold text-civiq-dark">Average Waiting Time</h3>
                     <div className="relative w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help hover:border-civiq-blue hover:text-civiq-blue transition-colors">
                       i
@@ -1606,7 +1606,7 @@ export default function SimulationDashboard() {
                         <p className="text-3xl font-bold text-civiq-dark">18.5</p>
                         <span className="text-xs text-civiq-dark">sec</span>
                       </div>
-                      <span className="text-xs text-green-600">+22.25%</span>
+                      <span className="text-xs text-green-600 animate-pulse">+22.25%</span>
                     </div>
                     <div className="flex-1 h-14 flex items-end">
                       <svg className="w-full h-full" viewBox="0 0 200 60" preserveAspectRatio="none">
@@ -1627,8 +1627,8 @@ export default function SimulationDashboard() {
                 </div>
 
                 {/* Network Throughput */}
-                <div className="flex-1 bg-gray-50 rounded-[24px] p-5">
-                  <div className="flex items-center gap-2 mb-2 group">
+                <div className="flex-1 bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
+                  <div className="flex items-center gap-2 mb-3 group">
                     <h3 className="text-sm font-bold text-civiq-dark">Network Throughput</h3>
                     <div className="relative w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help hover:border-civiq-blue hover:text-civiq-blue transition-colors">
                       i
@@ -1641,7 +1641,7 @@ export default function SimulationDashboard() {
                         <p className="text-3xl font-bold text-civiq-dark">{metrics.networkThroughput}</p>
                         <span className="text-xs text-civiq-dark">vehicles</span>
                       </div>
-                      <span className="text-xs text-green-600">+4.32%</span>
+                      <span className="text-xs text-green-600 animate-pulse">+4.32%</span>
                     </div>
                     <div className="flex-1 h-14 flex items-end">
                       <svg className="w-full h-full" viewBox="0 0 200 60" preserveAspectRatio="none">
@@ -1663,8 +1663,8 @@ export default function SimulationDashboard() {
               </div>
 
               {/* Learning Convergence - Row 1-3, Right */}
-              <div className="col-span-7 row-span-3 bg-gray-50 rounded-[24px] p-5">
-                <div className="flex items-center gap-2 mb-3 group">
+              <div className="col-span-7 row-span-3 bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
+                <div className="flex items-center gap-2 mb-4 group">
                   <h3 className="text-base font-bold text-civiq-dark">Learning Convergence</h3>
                   <div className="relative w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help hover:border-civiq-blue hover:text-civiq-blue transition-colors">
                     i
@@ -1723,12 +1723,13 @@ export default function SimulationDashboard() {
                 </div>
               </div>
             </div>
-          {/* Secondary Metrics */}
-          <div className="grid grid-cols-12 gap-6 h-auto">
+
+            {/* Second Section: Network Pressure, Environmental Impact, Traffic Wave */}
+            <div className="grid grid-cols-12 gap-8 h-auto mt-10">
             {/* Network Pressure Mapping */}
             <div className="col-span-6">
-              <div className="bg-white rounded-[32px] shadow-md p-5 h-full flex flex-col">
-                <div className="flex items-center gap-2 mb-4 group">
+              <div className="bg-gray-50 rounded-[24px] p-6 h-full flex flex-col hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
+                <div className="flex items-center gap-2 mb-5 group">
                   <h3 className="text-base font-bold text-civiq-dark">Network Pressure Mapping</h3>
                   <div className="relative w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help hover:border-civiq-blue hover:text-civiq-blue transition-colors">
                     i
@@ -1774,11 +1775,11 @@ export default function SimulationDashboard() {
             </div>
 
             {/* Right Column - Gauges & Traffic Wave Pattern */}
-            <div className="col-span-6 flex flex-col gap-5">
+            <div className="col-span-6 flex flex-col gap-6">
               {/* Environmental Impact Stats */}
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-2 gap-6">
                 {/* Average CO2 Emissions */}
-                <div className="bg-white rounded-[32px] shadow-md p-6">
+                <div className="bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                   <div className="text-center">
                     <div className="relative w-full aspect-square max-w-[150px] mx-auto mb-2">
                       <svg className="w-full h-full -rotate-90">
@@ -1812,7 +1813,7 @@ export default function SimulationDashboard() {
                 </div>
 
                 {/* Average Fuel Consumption */}
-                <div className="bg-white rounded-[32px] shadow-md p-6">
+                <div className="bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                   <div className="text-center">
                     <div className="relative w-full aspect-square max-w-[150px] mx-auto mb-2">
                       <svg className="w-full h-full -rotate-90">
@@ -1847,7 +1848,7 @@ export default function SimulationDashboard() {
               </div>
 
               {/* Traffic Wave Pattern - Expanded */}
-              <div className="bg-white rounded-[32px] shadow-md p-5 flex-1 flex flex-col">
+              <div className="bg-gray-50 rounded-[24px] p-6 flex-1 flex flex-col hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                 <div className="flex items-center gap-2 mb-3 group">
                   <h3 className="text-base font-bold text-civiq-dark">Traffic Wave Pattern</h3>
                   <div className="relative w-3.5 h-3.5 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help hover:border-civiq-blue hover:text-civiq-blue transition-colors">
