@@ -22,3 +22,11 @@ outputs/
 # IDE
 .vscode/
 .idea/
+<<<<<<< HEAD
+# Frontend
+node_modules/
+.next/
+.env.local
+.env.*.local
+=======
+>>>>>>> 474b73e016da591880f557dd0ef53a9fb2d76c9e

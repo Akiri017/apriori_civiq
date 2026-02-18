@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<<<<<<< HEAD
+<!-- generated on 2026-02-17T18:37:53.649815+08:00 by Eclipse SUMO GUI 1.25.0
+=======
 <!-- generated on 2026-02-04T14:15:40.939810+08:00 by Eclipse SUMO GUI 1.25.0
+>>>>>>> 474b73e016da591880f557dd0ef53a9fb2d76c9e
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -44,6 +48,8 @@
 -->
 
 <summary xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/summary_file.xsd">
+<<<<<<< HEAD
+=======
     <step time="0.00" loaded="2" inserted="1" running="1" waiting="0" ended="0" arrived="0" collisions="0" teleports="0" halting="1" stopped="0" meanWaitingTime="0.00" meanTravelTime="-1.00" meanSpeed="0.00" meanSpeedRelative="0.00" discarded="0" duration="4"/>
     <step time="1.00" loaded="288" inserted="2" running="2" waiting="0" ended="0" arrived="0" collisions="0" teleports="0" halting="1" stopped="0" meanWaitingTime="0.50" meanTravelTime="-1.00" meanSpeed="0.72" meanSpeedRelative="0.03" discarded="0" duration="82"/>
     <step time="2.00" loaded="288" inserted="3" running="3" waiting="0" ended="0" arrived="0" collisions="0" teleports="0" halting="1" stopped="0" meanWaitingTime="0.67" meanTravelTime="-1.00" meanSpeed="1.90" meanSpeedRelative="0.10" discarded="0" duration="0"/>
@@ -261,4 +267,5 @@
     <step time="214.00" loaded="574" inserted="305" running="159" waiting="1" ended="146" arrived="146" collisions="0" teleports="0" halting="69" stopped="0" meanWaitingTime="1.58" meanTravelTime="80.96" meanSpeed="5.11" meanSpeedRelative="0.32" discarded="0" duration="11"/>
     <step time="215.00" loaded="574" inserted="308" running="161" waiting="0" ended="147" arrived="147" collisions="0" teleports="0" halting="72" stopped="0" meanWaitingTime="1.60" meanTravelTime="81.00" meanSpeed="5.03" meanSpeedRelative="0.31" discarded="0" duration="11"/>
     <step time="216.00" loaded="574" inserted="309" running="162" waiting="0" ended="147" arrived="147" collisions="0" teleports="0" halting="68" stopped="0" meanWaitingTime="1.60" meanTravelTime="81.00" meanSpeed="4.96" meanSpeedRelative="0.31" discarded="0" duration="7"/>
+>>>>>>> 474b73e016da591880f557dd0ef53a9fb2d76c9e
 </summary>
