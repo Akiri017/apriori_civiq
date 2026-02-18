@@ -10,7 +10,7 @@ export const Footer = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8 py-12 border-b border-white border-opacity-20">
           <div className="flex items-center gap-4">
             <Image
-              src="/images/white-civiq-logo.png"
+              src="/icons/civiq-logo.png"
               alt="Civiq Logo"
               width={55}
               height={55}
@@ -60,8 +60,8 @@ export const Footer = () => {
           <div>
             <h3 className="font-semibold text-white text-sm mb-4 uppercase tracking-wide">Resources</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-white text-opacity-80 hover:text-opacity-100 transition-opacity text-sm">About Civiq</a></li>
-              <li><a href="#" className="text-white text-opacity-80 hover:text-opacity-100 transition-opacity text-sm">The Researchers</a></li>
+              <li><a href="/#about" className="text-white text-opacity-80 hover:text-opacity-100 transition-opacity text-sm">About Civiq</a></li>
+              <li><a href="/#researchers" className="text-white text-opacity-80 hover:text-opacity-100 transition-opacity text-sm">The Researchers</a></li>
               <li><a href="#" className="text-white text-opacity-80 hover:text-opacity-100 transition-opacity text-sm">Research Paper</a></li>
             </ul>
           </div>

@@ -44,14 +44,14 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="relative w-full py-16 bg-white">
+      <section id="about" className="relative w-full py-16 bg-white">
         <div className="max-w-[1400px] mx-auto px-6">
           <AboutSection />
         </div>
       </section>
 
       {/* Researchers Section */}
-      <section className="relative w-full py-20 bg-[#f9f9f9]">
+      <section id="researchers" className="relative w-full py-20 bg-[#f9f9f9]">
         <div className="max-w-7xl mx-auto px-8">
           <ResearchersSection />
         </div>
