@@ -56,6 +56,15 @@ export default function SimulationDashboard() {
   // Tooltip state
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
   
+  // Spider chart polygon hover state
+  const [hoveredPolygon, setHoveredPolygon] = useState<'superior' | 'inferior' | null>(null)
+  
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true)
+  
+  // Animation state
+  const [showContent, setShowContent] = useState(false)
+  
   const mapSize = searchParams.get('mapSize') || ''
   const trafficScale = searchParams.get('trafficScale') || ''
   const view = searchParams.get('view') || ''
@@ -161,6 +170,7 @@ export default function SimulationDashboard() {
     if (!algorithm1) return
 
     const fetchResults = async () => {
+      setIsLoading(true)
       try {
         const trafficLevel = trafficScale.includes('high') ? 'high'
           : trafficScale.includes('low') ? 'low'
@@ -176,6 +186,10 @@ export default function SimulationDashboard() {
         }
       } catch (error) {
         console.error('Failed to fetch results:', error)
+      } finally {
+        setIsLoading(false)
+        // Trigger stagger animation after content loads
+        setTimeout(() => setShowContent(true), 100)
       }
     }
 
@@ -753,18 +767,72 @@ export default function SimulationDashboard() {
         <div className="max-w-[1400px] mx-auto px-6">
           <h2 className="font-bold text-civiq-dark text-[28px] mb-8">Simulation Metrics</h2>
           
-          {view === 'comparative' ? (
+          {isLoading ? (
+            /* Loading Skeleton */
+            <div className="space-y-6">
+              {/* Skeleton for Performance Profile & Explanation */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-white rounded-[32px] shadow-lg p-8 h-[400px]">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-64 bg-gray-200 rounded-full mx-auto w-64"></div>
+                    <div className="flex justify-center gap-4">
+                      <div className="h-4 bg-gray-200 rounded w-24"></div>
+                      <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-[32px] shadow-lg p-8 h-[400px]">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-6 bg-gray-200 rounded w-2/3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 rounded w-4/5"></div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Skeleton for metrics cards */}
+              <div className="bg-white rounded-[32px] shadow-lg p-8">
+                <div className="grid grid-cols-12 gap-6">
+                  <div className="col-span-5 space-y-6">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="bg-gray-50 rounded-[24px] p-6">
+                        <div className="animate-pulse space-y-3">
+                          <div className="h-5 bg-gray-200 rounded w-1/2"></div>
+                          <div className="h-16 bg-gray-200 rounded"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="col-span-7 space-y-6">
+                    <div className="bg-gray-50 rounded-[24px] p-6 h-[280px]">
+                      <div className="animate-pulse">
+                        <div className="h-5 bg-gray-200 rounded w-1/3 mb-4"></div>
+                        <div className="h-48 bg-gray-200 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : view === 'comparative' ? (
             /* Comparative Metrics Layout */
             <>
               {/* Performance Profile & Explanation */}
-              <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className={`grid grid-cols-2 gap-6 mb-6 transition-all duration-700 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 {/* Performance Profile Spider Chart */}
-                <div className="bg-white rounded-[32px] shadow-lg p-8">
+                <div className="bg-white rounded-[32px] shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <h3 className="text-xl font-bold text-civiq-dark">Performance Profile</h3>
-                      <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400">
+                      <div className="relative w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help group">
                         i
+                        <div className="absolute left-0 top-6 z-10 w-72 p-3 bg-civiq-dark text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none">
+                          Multi-dimensional comparison of algorithm performance across 7 key metrics.
+                        </div>
                       </div>
                     </div>
                     
@@ -782,6 +850,56 @@ export default function SimulationDashboard() {
                   </div>
                   
                   <div className="relative w-full h-[280px] flex items-center justify-center">
+                    {/* Hover tooltip card */}
+                    {hoveredPolygon && (
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-20 bg-white rounded-xl shadow-2xl border-2 border-civiq-dark p-4 min-w-[240px] animate-in fade-in slide-in-from-top-2 duration-200 pointer-events-none">
+                        <h4 className={`text-base font-bold mb-2 ${hoveredPolygon === 'superior' ? 'text-[#8b5cf6]' : 'text-[#ef4444]'}`}>
+                          {hoveredPolygon === 'superior' ? (algorithmLabels[superiorAlgo] || superiorAlgo) : (algorithmLabels[inferiorAlgo] || inferiorAlgo)}
+                        </h4>
+                        <ul className="space-y-1 text-sm text-civiq-dark">
+                          {hoveredPolygon === 'superior' ? (
+                            <>
+                              <li className="flex items-start gap-2">
+                                <span className="text-green-600 font-bold">✓</span>
+                                <span>Better throughput</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-green-600 font-bold">✓</span>
+                                <span>Lower travel time</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-green-600 font-bold">✓</span>
+                                <span>Reduced emissions</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-green-600 font-bold">✓</span>
+                                <span>Improved efficiency</span>
+                              </li>
+                            </>
+                          ) : (
+                            <>
+                              <li className="flex items-start gap-2">
+                                <span className="text-gray-400">•</span>
+                                <span>Standard throughput</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-gray-400">•</span>
+                                <span>Higher travel time</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-gray-400">•</span>
+                                <span>More emissions</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-green-600 font-bold">✓</span>
+                                <span>Lower compute cost</span>
+                              </li>
+                            </>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                    
                     <svg viewBox="0 0 400 400" className="w-auto h-full max-w-[280px]">
                       {/* Background circles */}
                       <circle cx="200" cy="200" r="160" fill="none" stroke="#f1f1f1" strokeWidth="1"/>
@@ -813,6 +931,9 @@ export default function SimulationDashboard() {
                         stroke="#8b5cf6"
                         strokeWidth="3"
                         strokeLinejoin="round"
+                        className="hover:fill-opacity-50 transition-all duration-300 cursor-pointer"
+                        onMouseEnter={() => setHoveredPolygon('superior')}
+                        onMouseLeave={() => setHoveredPolygon(null)}
                       />
                       
                       {/* Inferior algorithm polygon (red) - Selfish Routing */}
@@ -823,6 +944,9 @@ export default function SimulationDashboard() {
                         stroke="#ef4444"
                         strokeWidth="3"
                         strokeLinejoin="round"
+                        className="hover:fill-opacity-50 transition-all duration-300 cursor-pointer"
+                        onMouseEnter={() => setHoveredPolygon('inferior')}
+                        onMouseLeave={() => setHoveredPolygon(null)}
                       />
                     </svg>
                     
@@ -852,7 +976,7 @@ export default function SimulationDashboard() {
                 </div>
                 
                 {/* Explanation */}
-                <div className="bg-white rounded-[32px] shadow-lg p-8 flex flex-col justify-center">
+                <div className="bg-white rounded-[32px] shadow-lg p-8 flex flex-col justify-center hover:shadow-xl transition-shadow duration-300">
                   <h3 className="text-xl font-bold text-civiq-dark mb-4">Understanding the Results</h3>
                   <p className="text-civiq-dark leading-relaxed mb-4">
                     The Performance Profile provides a comprehensive view of how different traffic management algorithms perform across multiple dimensions. The radar chart visualizes seven key metrics simultaneously, allowing for quick comparative analysis.
@@ -864,18 +988,18 @@ export default function SimulationDashboard() {
               </div>
               
               {/* Divider */}
-              <div className="flex items-center gap-4 my-10">
+              <div className={`flex items-center gap-4 my-10 transition-all duration-700 delay-100 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
                 <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Detailed Metrics</span>
                 <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
               </div>
               
-              <div className="bg-white rounded-[32px] shadow-lg p-8 mb-6">
+              <div className={`bg-white rounded-[32px] shadow-lg p-8 mb-6 transition-all duration-700 delay-200 hover:shadow-xl ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 <div className="grid grid-cols-12 gap-6">
                   {/* Left Column - ATT, AWT, Network Throughput */}
                   <div className="col-span-5 space-y-6">
                     {/* Average Travel Time */}
-                    <div className="bg-gray-50 rounded-[24px] p-6">
+                    <div className="bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2 relative">
                           <h3 className="text-base font-bold text-civiq-dark">Average Travel Time (ATT)</h3>
@@ -892,7 +1016,7 @@ export default function SimulationDashboard() {
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium animate-pulse">
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                             <path d="M6 2L4 6h4L6 2z"/>
                           </svg>
@@ -926,7 +1050,7 @@ export default function SimulationDashboard() {
                     </div>
 
                     {/* Average Waiting Time */}
-                    <div className="bg-gray-50 rounded-[24px] p-6">
+                    <div className="bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2 relative">
                           <h3 className="text-base font-bold text-civiq-dark">Average Waiting Time</h3>
@@ -943,7 +1067,7 @@ export default function SimulationDashboard() {
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium animate-pulse">
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                             <path d="M6 2L4 6h4L6 2z"/>
                           </svg>
@@ -977,7 +1101,7 @@ export default function SimulationDashboard() {
                     </div>
 
                     {/* Network Throughput */}
-                    <div className="bg-gray-50 rounded-[24px] p-6">
+                    <div className="bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2 relative">
                           <h3 className="text-base font-bold text-civiq-dark">Network Throughput</h3>
@@ -994,7 +1118,7 @@ export default function SimulationDashboard() {
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium animate-pulse">
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                             <path d="M6 2L4 6h4L6 2z"/>
                           </svg>
@@ -1031,7 +1155,7 @@ export default function SimulationDashboard() {
                   {/* Right Column - Traffic Wave Pattern & Compute Time */}
                   <div className="col-span-7 space-y-6">
                     {/* Traffic Wave Pattern */}
-                    <div className="bg-gray-50 rounded-[24px] p-6">
+                    <div className="bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2 relative">
                           <h3 className="text-xl font-bold text-civiq-dark">Traffic Wave Pattern</h3>
@@ -1156,7 +1280,7 @@ export default function SimulationDashboard() {
                     </div>
 
                     {/* Average Compute Time */}
-                    <div className="bg-gray-50 rounded-[24px] p-6">
+                    <div className="bg-gray-50 rounded-[24px] p-6 hover:bg-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2 relative">
                           <h3 className="text-base font-bold text-civiq-dark">Average Compute Time</h3>
@@ -1173,7 +1297,7 @@ export default function SimulationDashboard() {
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium animate-pulse">
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                             <path d="M6 2L4 6h4L6 2z"/>
                           </svg>
@@ -1210,9 +1334,9 @@ export default function SimulationDashboard() {
               </div>
 
               {/* CO2 and Fuel Consumption - 2 comparison cards */}
-              <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className={`grid grid-cols-2 gap-6 mb-6 transition-all duration-700 delay-300 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 {/* CO2 Emissions Card */}
-                <div className="bg-white rounded-[32px] shadow-lg p-6">
+                <div className="bg-white rounded-[32px] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
                   <div className="flex items-center gap-2 mb-6">
                     <h3 className="text-base font-bold text-civiq-dark">Average CO2 Emissions</h3>
                     <div 
@@ -1277,7 +1401,7 @@ export default function SimulationDashboard() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-center gap-1 text-green-600 text-sm font-medium mt-4">
+                  <div className="flex items-center justify-center gap-1 text-green-600 text-sm font-medium mt-4 animate-pulse">
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                       <path d="M6 2L4 6h4L6 2z"/>
                     </svg>
@@ -1286,7 +1410,7 @@ export default function SimulationDashboard() {
                 </div>
 
                 {/* Fuel Consumption Card */}
-                <div className="bg-white rounded-[32px] shadow-lg p-6">
+                <div className="bg-white rounded-[32px] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
                   <div className="flex items-center gap-2 mb-6">
                     <h3 className="text-base font-bold text-civiq-dark">Average Fuel Consumption</h3>
                     <div 
@@ -1351,7 +1475,7 @@ export default function SimulationDashboard() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-center gap-1 text-green-600 text-sm font-medium mt-4">
+                  <div className="flex items-center justify-center gap-1 text-green-600 text-sm font-medium mt-4 animate-pulse">
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                       <path d="M6 2L4 6h4L6 2z"/>
                     </svg>
@@ -1361,7 +1485,7 @@ export default function SimulationDashboard() {
               </div>
 
               {/* Network Pressure Mapping */}
-              <div className="bg-white rounded-[32px] shadow-lg p-8">
+              <div className={`bg-white rounded-[32px] shadow-lg p-8 transition-all duration-700 delay-[400ms] hover:shadow-xl ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 <div className="flex items-center gap-2 mb-6">
                   <h3 className="text-2xl font-bold text-civiq-dark">Network Pressure Mapping</h3>
                   <div className="relative w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs text-gray-400 cursor-help group">
@@ -1397,11 +1521,11 @@ export default function SimulationDashboard() {
                 {/* Heatmaps */}
                 <div className="grid grid-cols-2 gap-8 mt-12">
                   {/* Superior Algorithm Heatmap */}
-                  <div>
+                  <div className="transform hover:scale-105 transition-transform duration-300">
                     <h4 className="text-2xl font-bold text-civiq-dark text-center mb-4">
                       {algorithmLabels[superiorAlgo] || superiorAlgo}
                     </h4>
-                    <div className="relative aspect-[3/4] border-2 border-civiq-dark rounded-lg overflow-hidden bg-gray-100">
+                    <div className="relative aspect-[3/4] border-2 border-civiq-dark rounded-lg overflow-hidden bg-gray-100 shadow-lg hover:shadow-2xl transition-shadow duration-300">
                       {/* Placeholder - will be replaced with actual heatmap visualization */}
                       <div className="absolute inset-0 flex items-center justify-center">
                         <p className="text-sm text-gray-500">Heatmap Visualization</p>
@@ -1410,11 +1534,11 @@ export default function SimulationDashboard() {
                   </div>
                   
                   {/* Inferior Algorithm Heatmap */}
-                  <div>
+                  <div className="transform hover:scale-105 transition-transform duration-300">
                     <h4 className="text-2xl font-bold text-civiq-dark text-center mb-4">
                       {algorithmLabels[inferiorAlgo] || inferiorAlgo}
                     </h4>
-                    <div className="relative aspect-[3/4] border-2 border-civiq-dark rounded-lg overflow-hidden bg-gray-100">
+                    <div className="relative aspect-[3/4] border-2 border-civiq-dark rounded-lg overflow-hidden bg-gray-100 shadow-lg hover:shadow-2xl transition-shadow duration-300">
                       {/* Placeholder - will be replaced with actual heatmap visualization */}
                       <div className="absolute inset-0 flex items-center justify-center">
                         <p className="text-sm text-gray-500">Heatmap Visualization</p>
