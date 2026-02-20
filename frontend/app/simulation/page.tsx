@@ -1042,8 +1042,8 @@ export default function SimulationDashboard() {
                         </div>
                         <div className="flex-shrink-0 h-16 w-32 flex items-end">
                           <svg className="w-full h-full" viewBox="0 0 130 60" preserveAspectRatio="none">
-                            <polyline points="0,50 30,45 60,40 90,35 120,30" fill="none" stroke="#10b981" strokeWidth="2.5"/>
-                            <polyline points="0,45 30,43 60,40 90,38 120,36" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
+                            <polyline points="0,50 20,38 40,44 60,28 80,36 100,22 120,30" fill="none" stroke="#10b981" strokeWidth="2.5"/>
+                            <polyline points="0,46 20,42 40,47 60,40 80,44 100,36 120,41" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
                           </svg>
                         </div>
                       </div>
@@ -1093,8 +1093,8 @@ export default function SimulationDashboard() {
                         </div>
                         <div className="flex-shrink-0 h-16 w-32 flex items-end">
                           <svg className="w-full h-full" viewBox="0 0 130 60" preserveAspectRatio="none">
-                            <polyline points="0,55 30,50 60,45 90,40 120,35" fill="none" stroke="#10b981" strokeWidth="2.5"/>
-                            <polyline points="0,48 30,46 60,44 90,42 120,40" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
+                            <polyline points="0,55 20,48 40,52 60,40 80,45 100,34 120,38" fill="none" stroke="#10b981" strokeWidth="2.5"/>
+                            <polyline points="0,50 20,47 40,49 60,44 80,46 100,41 120,43" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
                           </svg>
                         </div>
                       </div>
@@ -1144,8 +1144,8 @@ export default function SimulationDashboard() {
                         </div>
                         <div className="flex-shrink-0 h-16 w-32 flex items-end">
                           <svg className="w-full h-full" viewBox="0 0 130 60" preserveAspectRatio="none">
-                            <polyline points="0,52 30,50 60,48 90,46 120,44" fill="none" stroke="#10b981" strokeWidth="2.5"/>
-                            <polyline points="0,48 30,47 60,46 90,45 120,44" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
+                            <polyline points="0,52 20,46 40,50 60,42 80,45 100,38 120,41" fill="none" stroke="#10b981" strokeWidth="2.5"/>
+                            <polyline points="0,48 20,46 40,47 60,45 80,46 100,44 120,45" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
                           </svg>
                         </div>
                       </div>
@@ -1323,8 +1323,8 @@ export default function SimulationDashboard() {
                         </div>
                         <div className="flex-shrink-0 h-16 w-32 flex items-end">
                           <svg className="w-full h-full" viewBox="0 0 130 60" preserveAspectRatio="none">
-                            <polyline points="0,52 30,50 60,47 90,44 120,40" fill="none" stroke="#10b981" strokeWidth="2.5"/>
-                            <polyline points="0,45 30,44 60,42 90,41 120,40" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
+                            <polyline points="0,52 20,45 40,49 60,41 80,44 100,36 120,39" fill="none" stroke="#10b981" strokeWidth="2.5"/>
+                            <polyline points="0,45 20,43 40,44 60,42 80,43 100,41 120,42" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3"/>
                           </svg>
                         </div>
                       </div>
@@ -1520,29 +1520,31 @@ export default function SimulationDashboard() {
                 
                 {/* Heatmaps */}
                 <div className="grid grid-cols-2 gap-8 mt-12">
-                  {/* Superior Algorithm Heatmap */}
+                  {/* Superior Algorithm Heatmap (Monolithic QMIX) */}
                   <div className="transform hover:scale-105 transition-transform duration-300">
                     <h4 className="text-2xl font-bold text-civiq-dark text-center mb-4">
                       {algorithmLabels[superiorAlgo] || superiorAlgo}
                     </h4>
                     <div className="relative aspect-[3/4] border-2 border-civiq-dark rounded-lg overflow-hidden bg-gray-100 shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                      {/* Placeholder - will be replaced with actual heatmap visualization */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <p className="text-sm text-gray-500">Heatmap Visualization</p>
-                      </div>
+                      <img 
+                        src="/heatmap_low.png" 
+                        alt={`${algorithmLabels[superiorAlgo] || superiorAlgo} Heatmap`}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   </div>
                   
-                  {/* Inferior Algorithm Heatmap */}
+                  {/* Inferior Algorithm Heatmap (Selfish Routing) */}
                   <div className="transform hover:scale-105 transition-transform duration-300">
                     <h4 className="text-2xl font-bold text-civiq-dark text-center mb-4">
                       {algorithmLabels[inferiorAlgo] || inferiorAlgo}
                     </h4>
                     <div className="relative aspect-[3/4] border-2 border-civiq-dark rounded-lg overflow-hidden bg-gray-100 shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                      {/* Placeholder - will be replaced with actual heatmap visualization */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <p className="text-sm text-gray-500">Heatmap Visualization</p>
-                      </div>
+                      <img 
+                        src="/heatmap_high.png" 
+                        alt={`${algorithmLabels[inferiorAlgo] || inferiorAlgo} Heatmap`}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   </div>
                 </div>

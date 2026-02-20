@@ -126,11 +126,12 @@ def get_network_bounds(edges):
 
 
 def generate_heatmap(edges, edge_congestion, output_path):
-    """Generate and save heatmap."""
+    """Generate and save heatmap with bright, vibrant colors."""
     # Prepare line segments
     line_segments = []
     colors = []
     
+    # Use a bright, vibrant colormap
     cmap = plt.cm.RdYlGn_r
     norm = Normalize(vmin=0, vmax=1)
     
@@ -141,13 +142,18 @@ def generate_heatmap(edges, edge_congestion, output_path):
         # Create line segments for this edge
         for i in range(len(coords) - 1):
             line_segments.append([coords[i], coords[i + 1]])
-            colors.append(cmap(norm(congestion)))
+            # Get base color and make it brighter
+            base_color = cmap(norm(congestion))
+            # Boost saturation and brightness
+            h, s, v = _rgb_to_hsv(base_color[:3])
+            bright_color = _hsv_to_rgb(h, min(s * 1.3, 1.0), min(v * 1.2, 1.0))
+            colors.append((*bright_color, base_color[3]))  # Keep alpha channel
     
-    # Create plot
-    fig, ax = plt.subplots(figsize=(20, 20), dpi=50)
+    # Create plot with white background
+    fig, ax = plt.subplots(figsize=(20, 20), dpi=50, facecolor='white')
     
-    # Create line collection
-    lc = LineCollection(line_segments, colors=colors, linewidths=2)
+    # Create line collection with thicker lines for brighter appearance
+    lc = LineCollection(line_segments, colors=colors, linewidths=3)
     ax.add_collection(lc)
     
     # Set bounds
@@ -157,8 +163,9 @@ def generate_heatmap(edges, edge_congestion, output_path):
     ax.set_ylim(ymin - margin, ymax + margin)
     ax.set_aspect('equal')
     
-    # Remove axes
+    # Remove axes and spines
     ax.axis('off')
+    fig.patch.set_facecolor('white')
     
     # Save
     plt.savefig(output_path, dpi=150, bbox_inches='tight', pad_inches=0, 
@@ -167,6 +174,54 @@ def generate_heatmap(edges, edge_congestion, output_path):
     
     file_size = os.path.getsize(output_path) / (1024 * 1024)
     print(f"  ✓ Saved: {output_path} ({file_size:.1f} MB)")
+
+
+def _rgb_to_hsv(rgb):
+    """Convert RGB to HSV for brightness adjustment."""
+    r, g, b = rgb[0], rgb[1], rgb[2]
+    max_val = max(r, g, b)
+    min_val = min(r, g, b)
+    delta = max_val - min_val
+    
+    # Hue
+    if delta == 0:
+        h = 0
+    elif max_val == r:
+        h = (60 * ((g - b) / delta) + 360) % 360
+    elif max_val == g:
+        h = (60 * ((b - r) / delta) + 120) % 360
+    else:
+        h = (60 * ((r - g) / delta) + 240) % 360
+    
+    # Saturation
+    s = 0 if max_val == 0 else delta / max_val
+    
+    # Value
+    v = max_val
+    
+    return h, s, v
+
+
+def _hsv_to_rgb(h, s, v):
+    """Convert HSV to RGB."""
+    c = v * s
+    x = c * (1 - abs((h / 60) % 2 - 1))
+    m = v - c
+    
+    if 0 <= h < 60:
+        r, g, b = c, x, 0
+    elif 60 <= h < 120:
+        r, g, b = x, c, 0
+    elif 120 <= h < 180:
+        r, g, b = 0, c, x
+    elif 180 <= h < 240:
+        r, g, b = 0, x, c
+    elif 240 <= h < 300:
+        r, g, b = x, 0, c
+    else:
+        r, g, b = c, 0, x
+    
+    return (r + m, g + m, b + m)
 
 
 def main():
