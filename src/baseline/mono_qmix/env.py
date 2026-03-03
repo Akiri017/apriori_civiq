@@ -14,12 +14,14 @@ class QMIXSumoEnv:
     Handles the 4x4 synthetic grid and manages a fixed number of agent slots.
     Implements the architecture spec from mono_qmix_architecture.md
     """
-    def __init__(self, sumo_config, max_agents=50, alpha=1.0, beta=0.1, gamma=10.0, use_gui=True):
+    def __init__(self, sumo_config, max_agents=50, alpha=1.0, beta=0.1, gamma=10.0, delta=0.05, epsilon=0.05, use_gui=True):
         self.sumo_config = sumo_config
         self.max_agents = max_agents
-        self.alpha = alpha  # Weight for Waiting Time
-        self.beta = beta    # Weight for Travel Time
-        self.gamma = gamma  # Weight for Throughput
+        self.alpha = alpha      # Weight for Waiting Time
+        self.beta = beta        # Weight for Travel Time
+        self.gamma = gamma      # Weight for Throughput
+        self.delta = delta      # Weight for CO2 emissions
+        self.epsilon = epsilon  # Weight for Fuel consumption
         self.use_gui = use_gui
         
         # Track junction IDs for congestion monitoring
@@ -28,16 +30,16 @@ class QMIXSumoEnv:
         # State builder (reusable component)
         self.state_builder = SumoStateBuilder(
             max_agents=max_agents,
-            obs_shape=4,
+            obs_shape=16,
             n_junctions=16
         )
         
         # Observation and State shapes (per architecture spec)
-        # Obs: [speed, dist_to_junction, lane_id_encoded, leader_dist]
-        self.obs_shape = 4 
+        # Obs: 16D [position(2), speed, accel, lane, neighbors(8), dist_junction, tls, route_progress]
+        self.obs_shape = 16 
         # State: [global_stats (5 + 16 junctions)] + [concatenated_obs (max_agents * obs_shape)]
         self.state_shape = 21 + (max_agents * self.obs_shape)
-        self.n_actions = 3  # [Left, Straight, Right]
+        self.n_actions = 6  # Micro-control: [Accel+Stay, Maintain+Stay, Decel+Stay, Accel+Left, Maintain+Left, Decel+Right]
         
         self.sumo_binary = sumolib.checkBinary('sumo-gui' if use_gui else 'sumo')
         self.step_count = 0
@@ -100,7 +102,7 @@ class QMIXSumoEnv:
             if vid in self.state_builder.agent_id_map:
                 slot = self.state_builder.agent_id_map[vid]
                 action = actions[slot]
-                self._apply_routing_action(vid, action)
+                self._apply_micro_control_action(vid, action)
         
         # 3. Step simulation
         traci.simulationStep()
@@ -121,74 +123,71 @@ class QMIXSumoEnv:
         
         return next_state, next_obs, reward, done
 
-    def _apply_routing_action(self, vid, action):
-        """Map discrete actions to SUMO routing commands with proper topology awareness.
-        Actions: 0=Left, 1=Straight, 2=Right
+    def _apply_micro_control_action(self, vid, action):
+        """Map discrete actions to SUMO micro-level vehicle control.
         
-        Uses network topology to:
-        1. Get valid outgoing edges from current position
-        2. Classify turns as left/straight/right based on angles
-        3. Generate complete valid routes to destinations
-        4. Only apply routes that SUMO will accept
+        Action space (6 discrete actions):
+            0: Accelerate + Stay in lane
+            1: Maintain speed + Stay in lane
+            2: Decelerate + Stay in lane
+            3: Accelerate + Lane change left (if possible)
+            4: Maintain speed + Lane change left (if possible)
+            5: Decelerate + Lane change right (if possible)
+        
+        Uses SUMO's vehicle control API for fine-grained control.
         """
-        if self.network is None or self.edge_graph is None:
-            return  # Network not loaded yet
-            
         try:
-            # Get vehicle's current edge
-            route = traci.vehicle.getRoute(vid)
-            route_index = traci.vehicle.getRouteIndex(vid)
+            current_speed = traci.vehicle.getSpeed(vid)
+            current_lane = traci.vehicle.getLaneIndex(vid)
+            edge_id = traci.vehicle.getRoadID(vid)
             
-            if route_index >= len(route):
-                return  # Vehicle at destination
+            # Decode action into longitudinal and lateral components
+            # Actions 0-2: Stay in lane
+            # Actions 3-4: Left lane change
+            # Action 5: Right lane change
+            
+            # ===== LONGITUDINAL CONTROL =====
+            if action in [0, 3]:  # Accelerate
+                # Let SUMO handle acceleration (max accel)
+                traci.vehicle.setSpeed(vid, -1)  # -1 means use default car-following
+                traci.vehicle.setSpeedMode(vid, 0)  # Allow all speed changes
+            elif action in [1, 4]:  # Maintain speed
+                traci.vehicle.setSpeed(vid, current_speed)
+                traci.vehicle.setSpeedMode(vid, 0)
+            elif action in [2, 5]:  # Decelerate
+                new_speed = max(0, current_speed - 2.0)  # Decelerate by 2 m/s
+                traci.vehicle.setSpeed(vid, new_speed)
+                traci.vehicle.setSpeedMode(vid, 0)
+            
+            # ===== LATERAL CONTROL =====
+            if action in [3, 4]:  # Lane change left
+                # Check if left lane exists
+                if not edge_id.startswith(':'):  # Not in junction
+                    try:
+                        num_lanes = traci.edge.getLaneNumber(edge_id)
+                        if current_lane > 0:  # Left lane exists
+                            target_lane = current_lane - 1
+                            # Request lane change (duration=3 seconds)
+                            traci.vehicle.changeLane(vid, target_lane, 3.0)
+                    except:
+                        pass  # Lane change not possible
+            elif action == 5:  # Lane change right
+                # Check if right lane exists
+                if not edge_id.startswith(':'):  # Not in junction
+                    try:
+                        num_lanes = traci.edge.getLaneNumber(edge_id)
+                        if current_lane < num_lanes - 1:  # Right lane exists
+                            target_lane = current_lane + 1
+                            # Request lane change (duration=3 seconds)
+                            traci.vehicle.changeLane(vid, target_lane, 3.0)
+                    except:
+                        pass  # Lane change not possible
+            # Actions 0-2: Stay in lane (no lateral action)
                 
-            current_edge_id = route[route_index]
-            
-            # Get possible next edges with turn classifications
-            possible_turns = self.edge_graph.get(current_edge_id, {})
-            
-            if not possible_turns:
-                return  # No alternatives available
-            
-            # Select edge based on action
-            chosen_edge_id = None
-            
-            if action == 0 and 'left' in possible_turns:
-                chosen_edge_id = possible_turns['left']
-            elif action == 1 and 'straight' in possible_turns:
-                chosen_edge_id = possible_turns['straight']
-            elif action == 2 and 'right' in possible_turns:
-                chosen_edge_id = possible_turns['right']
-            
-            if chosen_edge_id is None:
-                return  # Action not available for this edge
-            
-            # Get vehicle's original destination (last edge in route)
-            original_dest = route[-1]
-            
-            # Find a complete path from chosen_edge to a valid destination
-            try:
-                # Try to route to original destination through chosen edge
-                new_route_segment = self._find_path(chosen_edge_id, original_dest)
-                
-                if new_route_segment:
-                    # Build complete route: current + chosen + path to destination
-                    new_route = list(route[:route_index+1]) + new_route_segment
-                    traci.vehicle.setRoute(vid, new_route)
-                else:
-                    # If can't reach original destination, find any reachable destination
-                    alternate_dest = self._find_reachable_destination(chosen_edge_id)
-                    if alternate_dest:
-                        new_route_segment = self._find_path(chosen_edge_id, alternate_dest)
-                        if new_route_segment:
-                            new_route = list(route[:route_index+1]) + new_route_segment
-                            traci.vehicle.setRoute(vid, new_route)
-                            
-            except traci.exceptions.TraCIException:
-                pass  # Route invalid, vehicle keeps original route
-                
+        except traci.exceptions.TraCIException:
+            pass  # Vehicle no longer exists or invalid command
         except Exception:
-            pass  # Any error, skip action
+            pass  # Any other error, skip action
 
     def _get_state_and_obs(self):
         """Extract observations for all vehicles and construct the global state.
@@ -211,9 +210,16 @@ class QMIXSumoEnv:
         """
         Calculate the multi-objective global reward:
         r = - alpha * sum(Wait) - beta * sum(TravelTime) + gamma * Throughput
+            - delta * sum(CO2) - epsilon * sum(Fuel)
+            
+        Environmental factors:
+            - CO2 emissions (mg) via SUMO's emission model
+            - Fuel consumption (ml) for sustainability
         """
         total_wait = 0.0
         total_travel_time = 0.0
+        total_co2 = 0.0
+        total_fuel = 0.0
         
         # Get current simulation time
         current_time = traci.simulation.getTime()
@@ -230,11 +236,21 @@ class QMIXSumoEnv:
                 if departure_time >= 0:
                     travel_time = current_time - departure_time
                     total_travel_time += travel_time
+                
+                # Environmental factors (SUMO emission model)
+                total_co2 += traci.vehicle.getCO2Emission(vid)      # mg/s
+                total_fuel += traci.vehicle.getFuelConsumption(vid)  # ml/s
                     
             except Exception:
                 pass  # Vehicle disappeared, skip
-            
-        reward = - (self.alpha * total_wait) - (self.beta * total_travel_time) + (self.gamma * self.throughput_count)
+        
+        # Multi-objective reward with environmental considerations
+        reward = (- (self.alpha * total_wait) 
+                  - (self.beta * total_travel_time) 
+                  + (self.gamma * self.throughput_count)
+                  - (self.delta * total_co2)
+                  - (self.epsilon * total_fuel))
+        
         return reward / 1000.0  # Scaling for stability
 
     def close(self):
@@ -365,7 +381,8 @@ class QMIXSumoEnv:
         Returns:
             List of edge IDs forming the path (including from_edge and to_edge),
             or None if no path found
-        \"\"\"\n        if from_edge_id == to_edge_id:
+        """
+        if from_edge_id == to_edge_id:
             return [from_edge_id]
         
         # BFS to find shortest path
@@ -402,7 +419,8 @@ class QMIXSumoEnv:
             
         Returns:
             A reachable edge ID, or None
-        \"\"\"\n        from collections import deque
+        """
+        from collections import deque
         
         queue = deque([(from_edge_id, 0)])
         visited = {from_edge_id}
