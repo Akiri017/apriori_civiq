@@ -70,7 +70,7 @@ class QMIXSumoEnv:
             "--no-step-log", "true", 
             "--waiting-time-memory", "1000",
             "--time-to-teleport", "-1",  # Disable teleportation
-            "--no-warnings", "true"  # Reduce noise in output
+            "--no-warnings", "true",  # Reduce noise in output
         ])
         self.step_count = 0
         self.throughput_count = 0

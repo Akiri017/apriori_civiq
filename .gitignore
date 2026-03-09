@@ -19,14 +19,17 @@ outputs/
 *.pt
 *.pth
 
+# Results & Stats
+baseline_results.csv
+**/data/baseline_results*.csv
+**/data/*_stats.xml
+**/data/stats_*.xml
+
 # IDE
 .vscode/
 .idea/
-<<<<<<< HEAD
 # Frontend
 node_modules/
 .next/
 .env.local
 .env.*.local
-=======
->>>>>>> 474b73e016da591880f557dd0ef53a9fb2d76c9e
