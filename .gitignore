@@ -25,6 +25,10 @@ baseline_results.csv
 **/data/*_stats.xml
 **/data/stats_*.xml
 
+# Scenario output data (SUMO simulation results)
+**/data/*.xml
+**/data/*.csv
+
 # IDE
 .vscode/
 .idea/
