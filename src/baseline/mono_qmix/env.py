@@ -14,7 +14,9 @@ class QMIXSumoEnv:
     Handles the 4x4 synthetic grid and manages a fixed number of agent slots.
     Implements the architecture spec from mono_qmix_architecture.md
     """
-    def __init__(self, sumo_config, max_agents=50, alpha=1.0, beta=0.1, gamma=10.0, delta=0.05, epsilon=0.05, use_gui=True):
+
+    # kristian edit: changed max_agents from 20 to 50 to align with colab optimization experiments. The state builder and reward function will still only consider the first 20 agents for consistency with the original architecture spec.
+    def __init__(self, sumo_config, max_agents=20, alpha=1.0, beta=0.1, gamma=10.0, delta=0.05, epsilon=0.05, use_gui=True):
         self.sumo_config = sumo_config
         self.max_agents = max_agents
         self.alpha = alpha      # Weight for Waiting Time
@@ -70,7 +72,8 @@ class QMIXSumoEnv:
             "--no-step-log", "true", 
             "--waiting-time-memory", "1000",
             "--time-to-teleport", "-1",  # Disable teleportation
-            "--no-warnings", "true",  # Reduce noise in output
+            "--no-warnings", "false",  # Reduce noise in output
+            # kristian: set to false to figure out what is causing the ghost town
         ])
         self.step_count = 0
         self.throughput_count = 0
