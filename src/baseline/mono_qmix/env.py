@@ -74,6 +74,13 @@ class QMIXSumoEnv:
             "--time-to-teleport", "-1",  # Disable teleportation
             "--no-warnings", "false",  # Reduce noise in output
             # kristian: set to false to figure out what is causing the ghost town
+            
+            # --- ADD THESE FOR MACRO-AWARENESS & SPAWNING FIX ---
+            "--device.rerouting.probability", "1.0", # Forces every agent to have a routing device
+            "--device.rerouting.period", "1",        # Re-calculates best route to destination every step
+            "--ignore-route-errors", "true",         # Prevents crash if network is temporarily disconnected
+            "--start", "true",                       # Starts simulation immediately
+            "--quit-on-end", "true"                  # Cleans up process after the episode
         ])
         self.step_count = 0
         self.throughput_count = 0
