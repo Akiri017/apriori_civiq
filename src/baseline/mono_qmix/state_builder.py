@@ -101,8 +101,10 @@ class SumoStateBuilder:
                 lane_idx = traci.vehicle.getLaneIndex(vid)
                 
                 # ===== LOCAL ENVIRONMENT =====
-                # Get neighboring vehicles (8 values: 4 neighbors × 2 features)
+                # Get neighboring vehicles and enforce 8 values for a fixed 16D obs vector.
                 neighbors = self._get_neighbor_states(vid)
+                # Enforce 8 neighbor features so the final observation remains 16D.
+                neighbors = (neighbors + [0.0, 100.0] * 4)[:8]
                 
                 # Distance to next junction
                 dist_to_junction = self._calculate_distance_to_junction(vid)
@@ -130,7 +132,9 @@ class SumoStateBuilder:
                 total_waiting_time += traci.vehicle.getWaitingTime(vid)
                 total_speed += speed
                 
-            except Exception:
+            except Exception as e:
+                # Temporary debug: surface masked TraCI/shape errors per vehicle.
+                print(f"State Builder Error for {vid}: {e}")
                 # If vehicle disappeared or error, use zero observation
                 all_obs[slot] = np.zeros(self.obs_shape)
         
@@ -144,14 +148,17 @@ class SumoStateBuilder:
     def _get_neighbor_states(self, vehicle_id):
         """
         Get relative states of neighboring vehicles.
+
+        Note:
+            This helper may return up to 12 values (front/rear + left front/rear +
+            right front/rear). The caller truncates/pads to 8 values to keep the
+            observation size fixed at 16D.
         
         Returns:
-            list of 8 floats: [front_rel_speed, front_dist, 
+            list of 8 floats: [front_rel_speed, front_dist,
                                rear_rel_speed, rear_dist,
                                left_front_rel_speed, left_front_dist,
-                               left_rear_rel_speed, left_rear_dist,
-                               right_front_rel_speed, right_front_dist,
-                               right_rear_rel_speed, right_rear_dist]
+                               left_rear_rel_speed, left_rear_dist]
         """
         neighbors = []
         

@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-03-09T14:24:44.091830+08:00 by Eclipse SUMO GUI 1.25.0
+<!-- generated on 2026-03-14T14:30:03.818017+08:00 by Eclipse SUMO sumo 1.25.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\final_map.net.xml"/>
-        <route-files value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\routes_med.rou.xml"/>
+        <net-file value="c:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios/test_simple/final_map.net.xml"/>
+        <route-files value="c:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios/test_simple/routes_med.rou.xml"/>
     </input>
 
     <output>
-        <summary-output value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\data\data_selfish_med_summary.xml"/>
-        <tripinfo-output value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\data\data_selfish_med_tripinfo.xml"/>
-        <statistic-output value="C:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios\test_simple\data\data_selfish_med_stats.xml"/>
+        <summary-output value="c:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios/test_simple/data\data_selfish_med_summary.xml"/>
+        <tripinfo-output value="c:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios/test_simple/data\data_selfish_med_tripinfo.xml"/>
+        <statistic-output value="c:\Users\otaku\Documents\Thesis\apriori_civiq\scenarios/test_simple/data\data_selfish_med_stats.xml"/>
     </output>
 
     <time>
@@ -21,14 +21,29 @@
 
     <processing>
         <ignore-junction-blocker value="1"/>
-        <time-to-teleport value="300"/>
+        <ignore-route-errors value="true"/>
+        <time-to-teleport value="-1"/>
+        <waiting-time-memory value="1000"/>
     </processing>
 
+    <routing>
+        <device.rerouting.probability value="1.0"/>
+        <device.rerouting.period value="1"/>
+    </routing>
+
     <report>
+        <no-warnings value="false"/>
         <duration-log.statistics value="true"/>
+        <no-step-log value="true"/>
     </report>
 
-</sumoConfiguration>
--->
+    <traci_server>
+        <remote-port value="58759"/>
+    </traci_server>
 
-<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
+    <gui_only>
+        <quit-on-end value="true"/>
+        <start value="true"/>
+    </gui_only>
+
+</sumoConfiguration>
