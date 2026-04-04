@@ -2,79 +2,135 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from './Button'
 import { IconChevronDown } from './icons'
 
 interface DropdownOption {
   label: string
   value: string
+  description?: string
 }
 
 const mapSizeOptions: DropdownOption[] = [
-  { label: '2 km²', value: '2km' },
-  { label: '0.75 km²', value: '0.75km' },
-  { label: '4x4 Grid (2.25 km²)', value: '4x4' },
+  { label: '2 km²', value: '2km', description: 'Medium urban grid suitable for general simulation' },
+  { label: '0.75 km²', value: '0.75km', description: 'Small dense urban area for focused analysis' },
+  { label: '4x4 Grid (2.25 km²)', value: '4x4', description: 'Structured grid layout for controlled testing' },
 ]
 
 const trafficScaleOptions: DropdownOption[] = [
-  { label: 'Free Flow (LOS A)', value: 'free_flow' },
-  { label: 'Stable Flow (LOS C)', value: 'stable_flow' },
-  { label: 'Forced Flow (LOS E)', value: 'forced_flow' },
-]
-
-const viewOptions: DropdownOption[] = [
-  { label: 'Focused', value: 'focused' },
-  { label: 'Comparative', value: 'comparative' },
+  { label: 'Free Flow (LOS A)', value: 'free_flow', description: 'Minimal congestion — vehicles move freely at desired speeds' },
+  { label: 'Stable Flow (LOS C)', value: 'stable_flow', description: 'Moderate traffic density with acceptable delays' },
+  { label: 'Forced Flow (LOS E)', value: 'forced_flow', description: 'Near-capacity traffic with significant congestion' },
 ]
 
 const algorithmOptions: DropdownOption[] = [
-  { label: 'Selfish Routing', value: 'selfish_routing' },
-  { label: 'Monolithic QMIX', value: 'monolithic_qmix' },
-  { label: 'Hierarchical QMIX (Civiq)', value: 'hierarchical_qmix' },
+  { label: 'Selfish Routing', value: 'selfish_routing', description: 'Each vehicle independently optimizes its own route' },
+  { label: 'Monolithic QMIX', value: 'monolithic_qmix', description: 'Centralized multi-agent reinforcement learning control' },
+  { label: 'Hierarchical QMIX (Civiq)', value: 'hierarchical_qmix', description: "Civiq's hierarchical coordination framework for urban optimization" },
 ]
 
-interface DropdownProps {
+const DEFAULT_MAP_SIZE = '2km'
+const DEFAULT_TRAFFIC_SCALE = 'stable_flow'
+const DEFAULT_ALGORITHM = 'hierarchical_qmix'
+
+interface GlassDropdownProps {
   label: string
   options: DropdownOption[]
   selected: string
   onSelect: (value: string) => void
   isOpen: boolean
   onToggle: () => void
+  darkMode?: boolean
 }
 
-const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: DropdownProps) => {
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
+const GlassDropdown = ({ label, options, selected, onSelect, isOpen, onToggle, darkMode }: GlassDropdownProps) => {
   const selectedOption = options.find(opt => opt.value === selected)
-  const displayText = selectedOption?.label || label
+
+  const triggerBg = darkMode
+    ? isOpen ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.07)'
+    : isOpen ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.55)'
+
+  const triggerBorder = darkMode
+    ? isOpen ? '1px solid rgba(6,182,212,0.5)' : '1px solid rgba(255,255,255,0.12)'
+    : isOpen ? '1.5px solid rgba(6,182,212,0.5)' : '1px solid rgba(255,255,255,0.7)'
+
+  const textColor = darkMode
+    ? selectedOption ? '#e2e8f0' : 'rgba(255,255,255,0.35)'
+    : selectedOption ? '#1e293b' : '#64748b'
+
+  const chevronColor = darkMode
+    ? isOpen ? '#06B6D4' : 'rgba(255,255,255,0.35)'
+    : isOpen ? '#06B6D4' : '#94a3b8'
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <div 
-        className="bg-white rounded-[30px] px-5 py-3.5 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow shadow-sm border border-gray-200"
+    <div className="relative flex-1 min-w-0">
+      <div
         onClick={onToggle}
+        className="w-full px-4 py-3.5 flex items-center justify-between cursor-pointer transition-all duration-200"
+        style={{
+          background: triggerBg,
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          borderRadius: '50px',
+          border: triggerBorder,
+          boxShadow: isOpen ? '0 4px 20px rgba(6,182,212,0.15)' : 'none',
+        }}
       >
-        <p className={`font-semibold text-[15px] ${selectedOption ? 'text-civiq-blue' : 'text-gray-500'}`}>
-          {displayText}
-        </p>
-        <div className={`transition-transform ${selectedOption ? 'text-civiq-blue' : 'text-gray-400'} ${isOpen ? 'rotate-180' : ''}`}>
-          <IconChevronDown size={20} />
+        <span className="font-medium text-[14px] select-none truncate" style={{ color: textColor }}>
+          {selectedOption?.label || label}
+        </span>
+        <div
+          className="transition-transform duration-200 flex-shrink-0 ml-2"
+          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', color: chevronColor }}
+        >
+          <IconChevronDown size={16} />
         </div>
       </div>
-      
+
       {isOpen && (
-        <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-[20px] shadow-xl z-[100] overflow-hidden border border-gray-100">
-          {options.map((option) => (
+        <div
+          className="absolute top-full mt-2 left-0 right-0 z-[100]"
+          style={{
+            background: darkMode ? '#0d1a2d' : 'rgba(255,255,255,0.96)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            borderRadius: '16px',
+            border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.8)',
+            boxShadow: darkMode
+              ? '0 16px 48px rgba(0,0,0,0.6)'
+              : '0 12px 40px rgba(0,0,0,0.12)',
+          }}
+        >
+          {options.map((option, index) => (
             <div
               key={option.value}
-              className="px-5 py-3 hover:bg-civiq-blue/10 cursor-pointer text-civiq-dark font-medium text-[14px] transition-colors"
               onClick={(e) => {
                 e.stopPropagation()
                 onSelect(option.value)
                 onToggle()
               }}
+              className="px-4 py-3 cursor-pointer transition-colors duration-150"
+              style={{
+                borderBottom: index < options.length - 1
+                  ? darkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.05)'
+                  : 'none',
+              }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLElement).style.background = darkMode
+                  ? 'rgba(6,182,212,0.1)'
+                  : 'rgba(6,182,212,0.08)'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+              }}
             >
-              {option.label}
+              <p className="font-semibold text-[13px]" style={{ color: darkMode ? '#e2e8f0' : '#1e293b' }}>
+                {option.label}
+              </p>
+              {option.description && (
+                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: darkMode ? 'rgba(255,255,255,0.4)' : '#94a3b8' }}>
+                  {option.description}
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -84,206 +140,129 @@ const Dropdown = ({ label, options, selected, onSelect, isOpen, onToggle }: Drop
 }
 
 interface SimulationControlsProps {
-  initialMapSize?: string
-  initialTrafficScale?: string
-  initialView?: string
-  initialAlgorithm1?: string
-  initialAlgorithm2?: string
+  darkMode?: boolean
 }
 
-export const SimulationControls = ({
-  initialMapSize = '',
-  initialTrafficScale = '',
-  initialView = '',
-  initialAlgorithm1 = '',
-  initialAlgorithm2 = ''
-}: SimulationControlsProps = {}) => {
+export const SimulationControls = ({ darkMode = false }: SimulationControlsProps) => {
   const router = useRouter()
-  const [mapSize, setMapSize] = useState(initialMapSize)
-  const [trafficScale, setTrafficScale] = useState(initialTrafficScale)
-  const [view, setView] = useState('')
-  const [algorithm1, setAlgorithm1] = useState('')
-  const [algorithm2, setAlgorithm2] = useState('')
-  
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [mapSize, setMapSize] = useState('')
+  const [trafficScale, setTrafficScale] = useState('')
+  const [algorithm, setAlgorithm] = useState('')
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
   const toggleDropdown = (name: string) => {
-    setOpenDropdown(openDropdown === name ? null : name)
+    setOpenDropdown(prev => (prev === name ? null : name))
   }
 
-  // Validation logic
-  const isFormValid = () => {
-    // Check if basic required fields are filled
-    if (!mapSize || !trafficScale || !view) {
-      return false
-    }
-    
-    // Check algorithm selection based on view type
-    if (view === 'focused') {
-      return !!algorithm1
-    } else if (view === 'comparative') {
-      return !!algorithm1 && !!algorithm2 && algorithm1 !== algorithm2
-    }
-    
-    return false
+  const isFormValid = () => mapSize !== '' && trafficScale !== '' && algorithm !== ''
+
+  const handleSelectDefault = () => {
+    setMapSize(DEFAULT_MAP_SIZE)
+    setTrafficScale(DEFAULT_TRAFFIC_SCALE)
+    setAlgorithm(DEFAULT_ALGORITHM)
+    setOpenDropdown(null)
   }
 
-  const handleRunSimulation = () => {
-    // Validate before navigation
-    if (!isFormValid()) {
-      return
-    }
-    
+  const handleRun = () => {
+    if (!isFormValid()) return
     const params = new URLSearchParams()
     params.set('mapSize', mapSize)
     params.set('trafficScale', trafficScale)
-    params.set('view', view)
-    params.set('algorithm1', algorithm1)
-    if (view === 'comparative' && algorithm2) {
-      params.set('algorithm2', algorithm2)
-    }
-    
+    params.set('view', 'focused')
+    params.set('algorithm1', algorithm)
     router.push(`/simulation?${params.toString()}`)
   }
 
-  // Sync with initial values when they change
-  useEffect(() => {
-    if (initialMapSize) setMapSize(initialMapSize)
-    if (initialTrafficScale) setTrafficScale(initialTrafficScale)
-    if (initialView) setView(initialView)
-    if (initialAlgorithm1) setAlgorithm1(initialAlgorithm1)
-    if (initialAlgorithm2) setAlgorithm2(initialAlgorithm2)
-  }, [initialMapSize, initialTrafficScale, initialView, initialAlgorithm1, initialAlgorithm2])
-
-  // Reset algorithm selections when view changes (but not on initial load)
-  useEffect(() => {
-    if (!initialView) {
-      setAlgorithm1('')
-      setAlgorithm2('')
-    }
-  }, [view, initialView])
-
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement
-      // Check if click is outside all dropdown containers
-      const isOutside = !target.closest('.relative')
-      if (isOutside && openDropdown) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node) && openDropdown) {
         setOpenDropdown(null)
       }
     }
-
     if (openDropdown) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [openDropdown])
 
+  const headerColor = '#06B6D4'
+  const iconBg = darkMode ? 'rgba(6,182,212,0.15)' : 'rgba(6,182,212,0.12)'
+
   return (
-    <div className="w-full">
-      {/* Title */}
-      <h2 className="font-bold text-civiq-dark text-[18px] mb-3 flex items-center gap-2">
-        <img alt="Simulation Controls Icon" src="/icons/simulation_controls.svg" className="w-5 h-5" style={{filter: 'invert(1) hue-rotate(210deg) brightness(0.9) saturate(1.5)'}} />
-        Simulation Controls
-      </h2>
-
-      {/* Control Panel */}
-      <div className="bg-gray-100 rounded-[40px] shadow-sm p-5 mb-4 border border-gray-200">
-        <div className="grid grid-cols-4 gap-3">
-          {/* Map Size */}
-          <Dropdown
-            label="Map Size"
-            options={mapSizeOptions}
-            selected={mapSize}
-            onSelect={setMapSize}
-            isOpen={openDropdown === 'mapSize'}
-            onToggle={() => toggleDropdown('mapSize')}
-          />
-
-          {/* Traffic Scale */}
-          <Dropdown
-            label="Traffic Scale"
-            options={trafficScaleOptions}
-            selected={trafficScale}
-            onSelect={setTrafficScale}
-            isOpen={openDropdown === 'trafficScale'}
-            onToggle={() => toggleDropdown('trafficScale')}
-          />
-
-          {/* View */}
-          <Dropdown
-            label="View"
-            options={viewOptions}
-            selected={view}
-            onSelect={setView}
-            isOpen={openDropdown === 'view'}
-            onToggle={() => toggleDropdown('view')}
-          />
-
-          {/* Run Simulation */}
-          <Button 
-            variant="primary" 
-            fullWidth 
-            onPress={handleRunSimulation}
-            disabled={!mapSize || !trafficScale || !view || !algorithm1 || (view === 'comparative' && !algorithm2)}
-          >
-            Run Simulation
-          </Button>
+    <div
+      ref={containerRef}
+      className="w-full transition-all duration-200"
+      style={{ paddingBottom: openDropdown ? '220px' : '0px' }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={headerColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4"  y1="21" x2="4"  y2="14" />
+            <line x1="4"  y1="10" x2="4"  y2="3"  />
+            <line x1="12" y1="21" x2="12" y2="12" />
+            <line x1="12" y1="8"  x2="12" y2="3"  />
+            <line x1="20" y1="21" x2="20" y2="16" />
+            <line x1="20" y1="12" x2="20" y2="3"  />
+            <line x1="1"  y1="14" x2="7"  y2="14" />
+            <line x1="9"  y1="8"  x2="15" y2="8"  />
+            <line x1="17" y1="16" x2="23" y2="16" />
+          </svg>
         </div>
+        <h2 className="font-bold text-[17px] tracking-wide" style={{ color: headerColor }}>
+          Simulation Controls
+        </h2>
       </div>
 
-      {/* Algorithm Selection - Show only after view is selected */}
-      {view && (
-        <>
-          <div className={`grid ${view === 'comparative' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
-            {/* First Algorithm Option */}
-            <Dropdown
-              label={view === 'comparative' ? 'Algorithm 1' : 'Algorithm Selection'}
-              options={view === 'comparative' ? algorithmOptions.filter(opt => opt.value !== algorithm2) : algorithmOptions}
-              selected={algorithm1}
-              onSelect={setAlgorithm1}
-              isOpen={openDropdown === 'algorithm1'}
-              onToggle={() => toggleDropdown('algorithm1')}
-            />
+      {/* Dropdowns */}
+      <div className="flex flex-row gap-3 mb-5">
+        <GlassDropdown label="Map Size" options={mapSizeOptions} selected={mapSize} onSelect={setMapSize}
+          isOpen={openDropdown === 'mapSize'} onToggle={() => toggleDropdown('mapSize')} darkMode={darkMode} />
+        <GlassDropdown label="Traffic Scale" options={trafficScaleOptions} selected={trafficScale} onSelect={setTrafficScale}
+          isOpen={openDropdown === 'trafficScale'} onToggle={() => toggleDropdown('trafficScale')} darkMode={darkMode} />
+        <GlassDropdown label="Algorithm" options={algorithmOptions} selected={algorithm} onSelect={setAlgorithm}
+          isOpen={openDropdown === 'algorithm'} onToggle={() => toggleDropdown('algorithm')} darkMode={darkMode} />
+      </div>
 
-            {/* Second Algorithm Option - Only for Comparative View */}
-            {view === 'comparative' && (
-              <Dropdown
-                label="Algorithm 2"
-                options={algorithmOptions.filter(opt => opt.value !== algorithm1)}
-                selected={algorithm2}
-                onSelect={setAlgorithm2}
-                isOpen={openDropdown === 'algorithm2'}
-                onToggle={() => toggleDropdown('algorithm2')}
-              />
-            )}
-          </div>
-          
-          {/* Validation Message */}
-          {!isFormValid() && (
-            <div className="mt-3 text-sm text-red-500 flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-              </svg>
-              <span>
-                {!algorithm1 && 'Please select an algorithm to continue.'}
-                {algorithm1 && view === 'comparative' && !algorithm2 && 'Please select a second algorithm for comparison.'}
-              </span>
-            </div>
-          )}
-        </>
-      )}
-      
-      {/* Message when view is not selected */}
-      {!view && (
-        <div className="mt-3 text-sm text-gray-500 flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-          </svg>
-          <span>Select map size, traffic scale, and view to configure algorithm options.</span>
-        </div>
-      )}
+      {/* Buttons */}
+      <div className="flex gap-3">
+        <button
+          onClick={handleSelectDefault}
+          className="flex-1 py-3 font-semibold text-[14px] transition-all duration-200 rounded-full"
+          style={{ background: 'transparent', border: `1.5px solid ${headerColor}`, color: headerColor }}
+          onMouseEnter={(e) => { ;(e.currentTarget as HTMLElement).style.background = 'rgba(6,182,212,0.1)' }}
+          onMouseLeave={(e) => { ;(e.currentTarget as HTMLElement).style.background = 'transparent' }}
+        >
+          Select Default
+        </button>
+        <button
+          onClick={handleRun}
+          disabled={!isFormValid()}
+          className="flex-1 py-3 font-bold text-[14px] text-white transition-all duration-200 rounded-full"
+          style={{
+            background: isFormValid() ? 'linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)' : darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(148,163,184,0.4)',
+            border: 'none',
+            cursor: isFormValid() ? 'pointer' : 'not-allowed',
+            boxShadow: isFormValid() ? '0 4px 20px rgba(6,182,212,0.45)' : 'none',
+            color: isFormValid() ? 'white' : darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(100,116,139,0.8)',
+          }}
+          onMouseEnter={(e) => {
+            if (isFormValid()) {
+              ;(e.currentTarget as HTMLElement).style.boxShadow = '0 6px 28px rgba(6,182,212,0.6)'
+              ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (isFormValid()) {
+              ;(e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(6,182,212,0.45)'
+              ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
+            }
+          }}
+        >
+          Run
+        </button>
+      </div>
     </div>
   )
 }
