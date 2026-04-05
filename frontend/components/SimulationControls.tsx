@@ -240,7 +240,7 @@ export const SimulationControls = ({
       </div>
 
       {/* Buttons */}
-      <div className="flex gap-3">
+      <div className={`flex ${vertical ? 'flex-col' : 'flex-row'} gap-3`}>
         <button
           onClick={handleSelectDefault}
           className="flex-1 py-3 font-semibold text-[14px] transition-all duration-200 rounded-full"
