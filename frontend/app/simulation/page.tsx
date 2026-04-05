@@ -358,20 +358,34 @@ const DETAIL_METRICS = [
   { label: 'Avg Speed', unit: 'km/h', key: 'speed' as const, max: 60 },
 ]
 
-const AlgoDetailPage = ({ algo }: { algo: AlgoData }) => (
+const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
+  algo: AlgoData; mapSize: string; trafficScale: string
+}) => (
   <div className="p-6 space-y-5 overflow-y-auto" style={{ height: '100%' }}>
     {/* Header */}
-    <div className="flex items-start justify-between">
-      <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center text-[15px] font-bold flex-shrink-0"
-          style={{ background: algo.colorDim, border: `1px solid ${algo.border}`, color: algo.color }}>
-          #{algo.rank}
-        </div>
-        <div>
-          <h2 className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.9)' }}>{algo.label}</h2>
-          <p className="text-[12px] mt-0.5" style={{ color: algo.color }}>{algo.sublabel}</p>
-        </div>
+    <div className="flex items-center justify-between gap-4">
+      {/* Left: name + subtitle */}
+      <div>
+        <h2 className="text-xl font-bold leading-tight" style={{ color: 'rgba(255,255,255,0.9)' }}>{algo.label}</h2>
       </div>
+
+      {/* Centre: simulation parameter badges */}
+      <div className="flex items-center gap-2 flex-1">
+        {mapSize && (
+          <span className="text-[11px] font-medium px-2.5 py-1 rounded-full"
+            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.55)' }}>
+            {MAP_LABELS[mapSize] || mapSize}
+          </span>
+        )}
+        {trafficScale && (
+          <span className="text-[11px] font-medium px-2.5 py-1 rounded-full"
+            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.55)' }}>
+            {TRAFFIC_LABELS[trafficScale] || trafficScale}
+          </span>
+        )}
+      </div>
+
+      {/* Right: efficiency pill */}
       <div className="px-4 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0"
         style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
         {algo.efficiency}% Efficiency Score
@@ -722,9 +736,9 @@ export default function SimulationDashboard() {
               />
               <div className="flex-1 overflow-y-auto relative" style={{ minHeight: 0 }}>
                 {activePage === 'summary' && <SummaryPage />}
-                {activePage === 'civiq' && <AlgoDetailPage algo={ALGO.civiq} />}
-                {activePage === 'selfish' && <AlgoDetailPage algo={ALGO.selfish} />}
-                {activePage === 'qmix' && <AlgoDetailPage algo={ALGO.qmix} />}
+                {activePage === 'civiq' && <AlgoDetailPage algo={ALGO.civiq} mapSize={mapSize} trafficScale={trafficScale} />}
+                {activePage === 'selfish' && <AlgoDetailPage algo={ALGO.selfish} mapSize={mapSize} trafficScale={trafficScale} />}
+                {activePage === 'qmix' && <AlgoDetailPage algo={ALGO.qmix} mapSize={mapSize} trafficScale={trafficScale} />}
               </div>
             </div>
           </div>
