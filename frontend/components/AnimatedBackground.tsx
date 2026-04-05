@@ -1,56 +1,57 @@
 'use client'
 
 export const AnimatedBackground = () => {
+  // Blobs tuned for a deep-dark background — vivid core, wide soft glow
   const blobs = [
     {
       style: {
-        width: 600,
-        height: 600,
-        background: 'radial-gradient(circle at 40% 40%, #a78bfa, #7c3aed)',
-        top: '-180px',
-        left: '-150px',
+        width: 640,
+        height: 640,
+        background: 'radial-gradient(circle at 38% 38%, #7c3aed 0%, #4c1d95 55%, transparent 100%)',
+        top: '-200px',
+        left: '-170px',
         animation: 'blob1 14s ease-in-out infinite',
         animationDelay: '0s',
       },
     },
     {
       style: {
-        width: 550,
-        height: 550,
-        background: 'radial-gradient(circle at 60% 40%, #67e8f9, #06b6d4)',
-        top: '-100px',
-        right: '-160px',
+        width: 580,
+        height: 580,
+        background: 'radial-gradient(circle at 60% 38%, #06b6d4 0%, #0e4f6b 55%, transparent 100%)',
+        top: '-120px',
+        right: '-180px',
         animation: 'blob2 17s ease-in-out infinite',
         animationDelay: '-4s',
       },
     },
     {
       style: {
-        width: 500,
-        height: 500,
-        background: 'radial-gradient(circle at 50% 60%, #f9a8d4, #ec4899)',
-        bottom: '5%',
-        left: '15%',
+        width: 520,
+        height: 520,
+        background: 'radial-gradient(circle at 50% 58%, #db2777 0%, #7d1050 55%, transparent 100%)',
+        bottom: '4%',
+        left: '12%',
         animation: 'blob3 15s ease-in-out infinite',
         animationDelay: '-7s',
       },
     },
     {
       style: {
-        width: 460,
-        height: 460,
-        background: 'radial-gradient(circle at 45% 55%, #93c5fd, #3b82f6)',
-        bottom: '10%',
-        right: '5%',
+        width: 480,
+        height: 480,
+        background: 'radial-gradient(circle at 44% 54%, #2563eb 0%, #1e3a8a 55%, transparent 100%)',
+        bottom: '8%',
+        right: '4%',
         animation: 'blob4 18s ease-in-out infinite',
         animationDelay: '-2s',
       },
     },
     {
       style: {
-        width: 380,
-        height: 380,
-        background: 'radial-gradient(circle at 50% 50%, #c4b5fd, #8b5cf6)',
+        width: 400,
+        height: 400,
+        background: 'radial-gradient(circle at 50% 50%, #6d28d9 0%, #3b0764 55%, transparent 100%)',
         top: '40%',
         left: '40%',
         transform: 'translate(-50%, -50%)',
@@ -71,8 +72,8 @@ export const AnimatedBackground = () => {
           className="absolute rounded-full"
           style={{
             ...blob.style,
-            filter: 'blur(50px)',
-            opacity: 0.78,
+            filter: 'blur(72px)',
+            opacity: 0.55,
           }}
         />
       ))}
