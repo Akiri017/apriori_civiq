@@ -378,6 +378,12 @@ const AlgoDetailPage = ({ algo }: { algo: AlgoData }) => (
       </div>
     </div>
 
+    {/* Algorithm Overview — top */}
+    <GlassCard className="p-5">
+      <h3 className="text-[13px] font-bold mb-2" style={{ color: 'rgba(255,255,255,0.78)' }}>Algorithm Overview</h3>
+      <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>{algo.description}</p>
+    </GlassCard>
+
     {/* KPI Row */}
     <div className="grid grid-cols-4 gap-4">
       <KpiCard label="Avg. Travel Time" value={algo.travelTime} unit="min" sub="Per vehicle trip" color={algo.color} />
@@ -451,15 +457,9 @@ const AlgoDetailPage = ({ algo }: { algo: AlgoData }) => (
       </GlassCard>
     </div>
 
-    {/* Description + Strengths */}
-    <div className="grid grid-cols-2 gap-4">
-      <GlassCard className="p-5">
-        <h3 className="text-[13px] font-bold mb-3" style={{ color: 'rgba(255,255,255,0.78)' }}>Algorithm Overview</h3>
-        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>{algo.description}</p>
-      </GlassCard>
-
-      <GlassCard className="p-5">
-        <h3 className="text-[13px] font-bold mb-3" style={{ color: 'rgba(255,255,255,0.78)' }}>Key Strengths</h3>
+    {/* Key Strengths */}
+    <GlassCard className="p-5">
+      <h3 className="text-[13px] font-bold mb-3" style={{ color: 'rgba(255,255,255,0.78)' }}>Key Strengths</h3>
         <ul className="space-y-2.5">
           {algo.strengths.map((s, i) => (
             <li key={i} className="flex items-start gap-2.5 text-[12px]" style={{ color: 'rgba(255,255,255,0.58)' }}>
@@ -483,8 +483,7 @@ const AlgoDetailPage = ({ algo }: { algo: AlgoData }) => (
             </div>
           </div>
         )}
-      </GlassCard>
-    </div>
+    </GlassCard>
   </div>
 )
 
@@ -609,7 +608,6 @@ export default function SimulationDashboard() {
   const algorithm1 = searchParams.get('algorithm1') || ''
   const algorithm2 = searchParams.get('algorithm2') || ''
 
-  // Open the tab matching the selected algorithm on first load
   const algoToPage = (algo: string): Page => {
     if (algo === 'hierarchical_qmix') return 'civiq'
     if (algo === 'monolithic_qmix') return 'qmix'
@@ -617,6 +615,11 @@ export default function SimulationDashboard() {
     return 'summary'
   }
   const [activePage, setActivePage] = useState<Page>(() => algoToPage(algorithm1))
+
+  // Keep active tab in sync when URL params change (e.g. Run from sidebar controls)
+  useEffect(() => {
+    setActivePage(algoToPage(algorithm1))
+  }, [algorithm1])
 
   useEffect(() => {
     if (!mapSize || !trafficScale || !view || !algorithm1) { router.push('/'); return }
