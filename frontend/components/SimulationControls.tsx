@@ -141,14 +141,26 @@ const GlassDropdown = ({ label, options, selected, onSelect, isOpen, onToggle, d
 
 interface SimulationControlsProps {
   darkMode?: boolean
+  vertical?: boolean
+  hideHeader?: boolean
+  initialMapSize?: string
+  initialTrafficScale?: string
+  initialAlgorithm?: string
 }
 
-export const SimulationControls = ({ darkMode = false }: SimulationControlsProps) => {
+export const SimulationControls = ({
+  darkMode = false,
+  vertical = false,
+  hideHeader = false,
+  initialMapSize,
+  initialTrafficScale,
+  initialAlgorithm,
+}: SimulationControlsProps) => {
   const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
-  const [mapSize, setMapSize] = useState('')
-  const [trafficScale, setTrafficScale] = useState('')
-  const [algorithm, setAlgorithm] = useState('')
+  const [mapSize, setMapSize] = useState(initialMapSize || '')
+  const [trafficScale, setTrafficScale] = useState(initialTrafficScale || '')
+  const [algorithm, setAlgorithm] = useState(initialAlgorithm || '')
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
   const toggleDropdown = (name: string) => {
@@ -193,30 +205,32 @@ export const SimulationControls = ({ darkMode = false }: SimulationControlsProps
     <div
       ref={containerRef}
       className="w-full transition-all duration-200"
-      style={{ paddingBottom: openDropdown ? '220px' : '0px' }}
+      style={{ paddingBottom: vertical ? 0 : openDropdown ? '220px' : '0px' }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={headerColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="4"  y1="21" x2="4"  y2="14" />
-            <line x1="4"  y1="10" x2="4"  y2="3"  />
-            <line x1="12" y1="21" x2="12" y2="12" />
-            <line x1="12" y1="8"  x2="12" y2="3"  />
-            <line x1="20" y1="21" x2="20" y2="16" />
-            <line x1="20" y1="12" x2="20" y2="3"  />
-            <line x1="1"  y1="14" x2="7"  y2="14" />
-            <line x1="9"  y1="8"  x2="15" y2="8"  />
-            <line x1="17" y1="16" x2="23" y2="16" />
-          </svg>
+      {!hideHeader && (
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={headerColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4"  y1="21" x2="4"  y2="14" />
+              <line x1="4"  y1="10" x2="4"  y2="3"  />
+              <line x1="12" y1="21" x2="12" y2="12" />
+              <line x1="12" y1="8"  x2="12" y2="3"  />
+              <line x1="20" y1="21" x2="20" y2="16" />
+              <line x1="20" y1="12" x2="20" y2="3"  />
+              <line x1="1"  y1="14" x2="7"  y2="14" />
+              <line x1="9"  y1="8"  x2="15" y2="8"  />
+              <line x1="17" y1="16" x2="23" y2="16" />
+            </svg>
+          </div>
+          <h2 className="font-bold text-[17px] tracking-wide" style={{ color: headerColor }}>
+            Simulation Controls
+          </h2>
         </div>
-        <h2 className="font-bold text-[17px] tracking-wide" style={{ color: headerColor }}>
-          Simulation Controls
-        </h2>
-      </div>
+      )}
 
       {/* Dropdowns */}
-      <div className="flex flex-row gap-3 mb-5">
+      <div className={`flex ${vertical ? 'flex-col' : 'flex-row'} gap-3 mb-4`}>
         <GlassDropdown label="Map Size" options={mapSizeOptions} selected={mapSize} onSelect={setMapSize}
           isOpen={openDropdown === 'mapSize'} onToggle={() => toggleDropdown('mapSize')} darkMode={darkMode} />
         <GlassDropdown label="Traffic Scale" options={trafficScaleOptions} selected={trafficScale} onSelect={setTrafficScale}

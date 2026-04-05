@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
+import { SimulationControls } from '@/components/SimulationControls'
 
 // ─── Status Bar (identical to landing page) ───────────────────────────────────
 
@@ -515,16 +516,26 @@ const PAGE_COLOR: Record<Page, string> = {
   qmix: ALGO.qmix.color,
 }
 
-const Sidebar = ({ activePage, setActivePage }: { activePage: Page; setActivePage: (p: Page) => void }) => (
+interface SidebarProps {
+  activePage: Page
+  setActivePage: (p: Page) => void
+  mapSize: string
+  trafficScale: string
+  algorithm1: string
+}
+
+const Sidebar = ({ activePage, setActivePage, mapSize, trafficScale, algorithm1 }: SidebarProps) => (
   <div className="flex flex-col flex-shrink-0"
-    style={{ width: '210px', background: 'rgba(0,0,0,0.2)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
-    <div className="px-5 pt-6 pb-3">
+    style={{ width: '248px', background: 'rgba(0,0,0,0.2)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+
+    {/* Analytics nav */}
+    <div className="px-5 pt-6 pb-3 flex-shrink-0">
       <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.28)' }}>
         Analytics
       </span>
     </div>
 
-    <nav className="flex-1 px-3 space-y-1">
+    <nav className="px-3 space-y-1 flex-shrink-0">
       {NAV.map((item) => {
         const isActive = activePage === item.id
         const col = PAGE_COLOR[item.id]
@@ -546,7 +557,32 @@ const Sidebar = ({ activePage, setActivePage }: { activePage: Page; setActivePag
       })}
     </nav>
 
-    <div className="p-4 mt-auto" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    {/* Divider */}
+    <div className="mx-4 my-4 flex-shrink-0" style={{ height: '1px', background: 'rgba(255,255,255,0.07)' }} />
+
+    {/* Simulation Controls section label */}
+    <div className="px-5 pb-3 flex-shrink-0">
+      <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.28)' }}>
+        Simulation Controls
+      </span>
+    </div>
+
+    {/* Controls — stacked vertically, pre-populated from current URL params */}
+    <div className="px-4 flex-shrink-0">
+      <SimulationControls
+        darkMode
+        vertical
+        hideHeader
+        initialMapSize={mapSize}
+        initialTrafficScale={trafficScale}
+        initialAlgorithm={algorithm1 === 'hierarchical_qmix' ? 'hierarchical_qmix'
+          : algorithm1 === 'monolithic_qmix' ? 'monolithic_qmix'
+          : algorithm1 === 'selfish_routing' ? 'selfish_routing'
+          : undefined}
+      />
+    </div>
+
+    <div className="p-4 mt-auto flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
       <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.28)' }}>Thesis Research</div>
       <div className="text-[11px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>OBU Traffic Sim v2</div>
     </div>
@@ -567,13 +603,20 @@ const TRAFFIC_LABELS: Record<string, string> = {
 export default function SimulationDashboard() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [activePage, setActivePage] = useState<Page>('summary')
-
   const mapSize = searchParams.get('mapSize') || ''
   const trafficScale = searchParams.get('trafficScale') || ''
   const view = searchParams.get('view') || ''
   const algorithm1 = searchParams.get('algorithm1') || ''
   const algorithm2 = searchParams.get('algorithm2') || ''
+
+  // Open the tab matching the selected algorithm on first load
+  const algoToPage = (algo: string): Page => {
+    if (algo === 'hierarchical_qmix') return 'civiq'
+    if (algo === 'monolithic_qmix') return 'qmix'
+    if (algo === 'selfish_routing') return 'selfish'
+    return 'summary'
+  }
+  const [activePage, setActivePage] = useState<Page>(() => algoToPage(algorithm1))
 
   useEffect(() => {
     if (!mapSize || !trafficScale || !view || !algorithm1) { router.push('/'); return }
@@ -667,7 +710,13 @@ export default function SimulationDashboard() {
 
             {/* Body: Sidebar + Content */}
             <div className="flex overflow-hidden" style={{ flex: 1, minHeight: 0 }}>
-              <Sidebar activePage={activePage} setActivePage={setActivePage} />
+              <Sidebar
+                activePage={activePage}
+                setActivePage={setActivePage}
+                mapSize={mapSize}
+                trafficScale={trafficScale}
+                algorithm1={algorithm1}
+              />
               <div className="flex-1 overflow-y-auto relative" style={{ minHeight: 0 }}>
                 {activePage === 'summary' && <SummaryPage />}
                 {activePage === 'civiq' && <AlgoDetailPage algo={ALGO.civiq} />}
