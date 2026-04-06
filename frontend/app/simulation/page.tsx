@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { SimulationControls } from '@/components/SimulationControls'
@@ -464,72 +464,111 @@ const SummaryPage = () => (
 )
 
 // ─── Map Player ───────────────────────────────────────────────────────────────
-// When backend is connected, pass vehicleTrajectories: VehicleTrajectory[]
-// and replace DUMMY_VEHICLES with real positional data.
-export interface VehicleTrajectory {
-  id: string
-  positions: { x: number; y: number; t: number }[]
-}
 
 const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
+  // Playback
+  const videoRef = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
-  const [step, setStep] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
   const [speed, setSpeed] = useState(1)
-  const MAX_STEPS = 300
 
+  // Pan / zoom — start zoomed in so the video fills and users can explore
+  const INITIAL_ZOOM = 2.5
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [zoom, setZoom] = useState(INITIAL_ZOOM)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const zoomRef = useRef(INITIAL_ZOOM)
+  const panRef = useRef({ x: 0, y: 0 })
+  zoomRef.current = zoom
+  panRef.current = pan
+  const dragging = useRef(false)
+  const dragOrigin = useRef({ x: 0, y: 0 })
+  const panOrigin = useRef({ x: 0, y: 0 })
+
+  // Wire playback rate to video
   useEffect(() => {
-    if (!playing) return
-    const ms = Math.round(80 / speed)
-    const id = setInterval(() => {
-      setStep(s => {
-        if (s >= MAX_STEPS - 1) { setPlaying(false); return MAX_STEPS - 1 }
-        return s + 1
-      })
-    }, ms)
-    return () => clearInterval(id)
-  }, [playing, speed])
+    if (videoRef.current) videoRef.current.playbackRate = speed
+  }, [speed])
 
-  // Grid geometry — 5 cols × 4 rows of intersections
-  const COLS = 5, ROWS = 4
-  const OX = 28, OY = 24, SX = 56, SY = 50
-  const iX = (c: number) => OX + c * SX
-  const iY = (r: number) => OY + r * SY
-  const W = OX * 2 + (COLS - 1) * SX   // 280
-  const H = OY * 2 + (ROWS - 1) * SY   // 198
+  // Center the view on mount so the zoomed-in video is centered
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const { width, height } = el.getBoundingClientRect()
+    setPan({
+      x: -(width * (INITIAL_ZOOM - 1)) / 2,
+      y: -(height * (INITIAL_ZOOM - 1)) / 2,
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Dummy vehicle routes — circular paths through grid nodes [col, row]
-  // Replace with real VehicleTrajectory[] from API when backend is ready
-  const DUMMY_VEHICLES: { route: [number, number][]; offset: number }[] = [
-    { route: [[0,0],[1,0],[2,0],[3,0],[4,0],[4,1],[4,2],[4,3],[3,3],[2,3],[1,3],[0,3],[0,2],[0,1]], offset: 0 },
-    { route: [[1,1],[2,1],[3,1],[3,2],[2,2],[1,2]], offset: 50 },
-    { route: [[0,0],[1,0],[1,1],[1,2],[1,3],[2,3],[3,3],[3,2],[3,1],[3,0],[4,0]], offset: 100 },
-    { route: [[2,0],[2,1],[2,2],[2,3],[3,3],[3,2],[3,1]], offset: 25 },
-    { route: [[0,2],[1,2],[2,2],[3,2],[4,2],[4,1],[3,1]], offset: 170 },
-    { route: [[4,0],[4,1],[3,1],[2,1],[1,1],[0,1],[0,2],[1,2]], offset: 220 },
-    { route: [[0,3],[1,3],[2,3],[2,2],[2,1],[2,0],[3,0],[4,0],[4,1]], offset: 75 },
-    { route: [[3,0],[3,1],[4,1],[4,2],[3,2],[2,2],[1,2],[0,2],[0,1],[1,1]], offset: 140 },
-    { route: [[1,0],[1,1],[0,1],[0,2],[1,2],[2,2],[2,3],[3,3],[4,3]], offset: 200 },
-    { route: [[4,3],[3,3],[2,3],[1,3],[0,3],[0,2],[0,1],[0,0],[1,0],[2,0]], offset: 260 },
-  ]
-
-  const getPos = (route: [number, number][], offset: number) => {
-    const t = (step + offset) % MAX_STEPS
-    const segCount = route.length
-    const segLen = MAX_STEPS / segCount
-    const rawSeg = Math.floor(t / segLen)
-    const segIdx = rawSeg % segCount
-    const segT = (t % segLen) / segLen
-    const from = route[segIdx]
-    const to = route[(segIdx + 1) % route.length]
-    return {
-      x: iX(from[0]) + (iX(to[0]) - iX(from[0])) * segT,
-      y: iY(from[1]) + (iY(to[1]) - iY(from[1])) * segT,
+  // Wheel → zoom toward cursor (passive: false so we can preventDefault)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const handler = (e: WheelEvent) => {
+      e.preventDefault()
+      const factor = e.deltaY < 0 ? 1.15 : 0.87
+      const newZoom = Math.min(8, Math.max(1, zoomRef.current * factor))
+      const rect = el.getBoundingClientRect()
+      const mx = e.clientX - rect.left
+      const my = e.clientY - rect.top
+      // Keep the point under the cursor fixed
+      const newPanX = mx - (mx - panRef.current.x) * (newZoom / zoomRef.current)
+      const newPanY = my - (my - panRef.current.y) * (newZoom / zoomRef.current)
+      setZoom(newZoom)
+      setPan({ x: newPanX, y: newPanY })
     }
+    el.addEventListener('wheel', handler, { passive: false })
+    return () => el.removeEventListener('wheel', handler)
+  }, [])
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    dragging.current = true
+    dragOrigin.current = { x: e.clientX, y: e.clientY }
+    panOrigin.current = { ...panRef.current }
+    e.preventDefault()
+  }
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!dragging.current) return
+    setPan({
+      x: panOrigin.current.x + (e.clientX - dragOrigin.current.x),
+      y: panOrigin.current.y + (e.clientY - dragOrigin.current.y),
+    })
+  }
+  const stopDrag = () => { dragging.current = false }
+
+  // Playback helpers
+  const togglePlay = () => {
+    const v = videoRef.current
+    if (!v) return
+    if (v.paused) { v.play(); setPlaying(true) }
+    else { v.pause(); setPlaying(false) }
+  }
+  const seek = (pct: number) => {
+    const v = videoRef.current
+    if (!v || !duration) return
+    v.currentTime = Math.max(0, Math.min(duration, pct * duration))
+  }
+  const reset = () => {
+    const v = videoRef.current
+    if (v) { v.pause(); v.currentTime = 0 }
+    setPlaying(false)
+    setCurrentTime(0)
+    // Return to initial centered zoom
+    const el = containerRef.current
+    const { width, height } = el?.getBoundingClientRect() ?? { width: 0, height: 0 }
+    setZoom(INITIAL_ZOOM)
+    setPan({
+      x: -(width * (INITIAL_ZOOM - 1)) / 2,
+      y: -(height * (INITIAL_ZOOM - 1)) / 2,
+    })
   }
 
-  const simSec = Math.floor((step / MAX_STEPS) * 3600)
-  const simTime = `${String(Math.floor(simSec / 60)).padStart(2, '0')}:${String(simSec % 60).padStart(2, '0')}`
-  const started = playing || step > 0
+  const pct = duration > 0 ? currentTime / duration : 0
+  const fmt = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 
   return (
     <GlassCard className="p-4 flex flex-col gap-3 col-span-2">
@@ -539,78 +578,70 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono px-2 py-0.5 rounded tabular-nums"
             style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
-            {simTime}
+            {fmt(currentTime)} / {duration > 0 ? fmt(duration) : '--:--'}
+          </span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded tabular-nums"
+            style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)' }}>
+            {zoom.toFixed(1)}×
           </span>
           <span className="text-[10px] px-2 py-0.5 rounded"
             style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}>
             {MAP_LABELS[mapSize] || mapSize || '—'}
           </span>
-          <span className="text-[9px] italic" style={{ color: 'rgba(255,255,255,0.2)' }}>dummy data</span>
         </div>
       </div>
 
-      {/* Map canvas */}
-      <div className="rounded-xl overflow-hidden relative flex-1"
-        style={{ background: 'rgba(3,7,18,0.75)', border: '1px solid rgba(255,255,255,0.07)', minHeight: '180px' }}>
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: `radial-gradient(ellipse 70% 60% at 50% 50%, ${algo.colorDim}, transparent 80%)` }} />
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', position: 'relative' }}>
-          {/* Road bodies */}
-          {Array.from({ length: ROWS }, (_, r) =>
-            Array.from({ length: COLS - 1 }, (_, c) => (
-              <line key={`h${r}-${c}`} x1={iX(c)} y1={iY(r)} x2={iX(c+1)} y2={iY(r)}
-                stroke="rgba(255,255,255,0.12)" strokeWidth="10" strokeLinecap="square" />
-            ))
-          )}
-          {Array.from({ length: COLS }, (_, c) =>
-            Array.from({ length: ROWS - 1 }, (_, r) => (
-              <line key={`v${c}-${r}`} x1={iX(c)} y1={iY(r)} x2={iX(c)} y2={iY(r+1)}
-                stroke="rgba(255,255,255,0.12)" strokeWidth="10" strokeLinecap="square" />
-            ))
-          )}
-          {/* Centre dashes */}
-          {Array.from({ length: ROWS }, (_, r) =>
-            Array.from({ length: COLS - 1 }, (_, c) => (
-              <line key={`hd${r}-${c}`} x1={iX(c)} y1={iY(r)} x2={iX(c+1)} y2={iY(r)}
-                stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="5 4" />
-            ))
-          )}
-          {Array.from({ length: COLS }, (_, c) =>
-            Array.from({ length: ROWS - 1 }, (_, r) => (
-              <line key={`vd${c}-${r}`} x1={iX(c)} y1={iY(r)} x2={iX(c)} y2={iY(r+1)}
-                stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="5 4" />
-            ))
-          )}
-          {/* Intersection boxes */}
-          {Array.from({ length: ROWS }, (_, r) =>
-            Array.from({ length: COLS }, (_, c) => (
-              <rect key={`i${c}-${r}`} x={iX(c)-5} y={iY(r)-5} width="10" height="10" rx="2"
-                fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.75" />
-            ))
-          )}
-          {/* Vehicles */}
-          {started ? DUMMY_VEHICLES.map((v, i) => {
-            const pos = getPos(v.route, v.offset)
-            return (
-              <g key={i}>
-                <circle cx={pos.x} cy={pos.y} r="7" fill={algo.color} opacity="0.12" />
-                <circle cx={pos.x} cy={pos.y} r="3.5" fill={algo.color} opacity="0.92" />
-                <circle cx={pos.x} cy={pos.y} r="1.5" fill="white" opacity="0.5" />
-              </g>
-            )
-          }) : (
-            <text x={W / 2} y={H / 2} textAnchor="middle" dominantBaseline="middle"
-              fontSize="11" fill="rgba(255,255,255,0.22)" fontWeight="500">
-              Press ▶ to start simulation
-            </text>
-          )}
-        </svg>
+      {/* Video viewport — pan/zoom container */}
+      <div
+        ref={containerRef}
+        className="rounded-xl overflow-hidden relative w-full select-none"
+        style={{
+          aspectRatio: '16 / 9',
+          background: '#000',
+          border: '1px solid rgba(255,255,255,0.07)',
+          cursor: zoom > 1 ? 'grab' : 'default',
+        }}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={stopDrag}
+        onMouseLeave={stopDrag}
+      >
+        {/* Transformed video layer */}
+        <div
+          style={{
+            position: 'absolute', inset: 0,
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: '0 0',
+            willChange: 'transform',
+          }}
+        >
+          <video
+            ref={videoRef}
+            src="/simulation.mp4"
+            muted
+            playsInline
+            preload="auto"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', pointerEvents: 'none' }}
+            onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime ?? 0)}
+            onLoadedMetadata={() => setDuration(videoRef.current?.duration ?? 0)}
+            onEnded={() => setPlaying(false)}
+          />
+        </div>
+
+        {/* Hint overlay when paused at start */}
+        {!playing && currentTime === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.28)' }}>
+              Press ▶ to play · scroll to zoom · drag to pan
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Controls */}
       <div className="flex items-center gap-2.5">
         {/* Restart */}
-        <button onClick={() => { setStep(0); setPlaying(false) }}
+        <button onClick={reset}
           className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center"
           style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)"
@@ -620,7 +651,7 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
           </svg>
         </button>
         {/* Play / Pause */}
-        <button onClick={() => setPlaying(p => !p)}
+        <button onClick={togglePlay}
           className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center transition-colors duration-150"
           style={{ background: algo.colorDim, border: `1px solid ${algo.border}` }}>
           {playing ? (
@@ -639,13 +670,12 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
           style={{ background: 'rgba(255,255,255,0.1)' }}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
-            setStep(Math.round(((e.clientX - rect.left) / rect.width) * (MAX_STEPS - 1)))
+            seek((e.clientX - rect.left) / rect.width)
           }}>
-          <div className="h-full rounded-full transition-none"
-            style={{ width: `${(step / (MAX_STEPS - 1)) * 100}%`, background: algo.color }} />
+          <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: algo.color }} />
           <div className="absolute top-1/2 w-3 h-3 rounded-full pointer-events-none"
             style={{
-              left: `${(step / (MAX_STEPS - 1)) * 100}%`,
+              left: `${pct * 100}%`,
               transform: 'translate(-50%, -50%)',
               background: 'white',
               boxShadow: `0 0 6px ${algo.color}, 0 0 0 2px ${algo.color}`,
@@ -665,6 +695,102 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
             </button>
           ))}
         </div>
+      </div>
+    </GlassCard>
+  )
+}
+
+// ─── Congestion Heatmap ───────────────────────────────────────────────────────
+// Dummy intensity grids (0 = free-flow, 1 = gridlock).
+// Replace with real heatmap data from the API when backend is connected.
+const HEATMAP_DATA: Record<AlgoKey, number[][]> = {
+  civiq: [
+    [0.14, 0.20, 0.17, 0.22, 0.15],
+    [0.24, 0.33, 0.38, 0.30, 0.26],
+    [0.20, 0.35, 0.40, 0.32, 0.22],
+    [0.16, 0.22, 0.26, 0.20, 0.16],
+  ],
+  qmix: [
+    [0.28, 0.38, 0.34, 0.42, 0.30],
+    [0.44, 0.60, 0.66, 0.56, 0.46],
+    [0.38, 0.56, 0.62, 0.52, 0.40],
+    [0.30, 0.42, 0.46, 0.38, 0.32],
+  ],
+  selfish: [
+    [0.50, 0.62, 0.56, 0.68, 0.52],
+    [0.70, 0.84, 0.90, 0.80, 0.72],
+    [0.62, 0.78, 0.86, 0.74, 0.64],
+    [0.52, 0.64, 0.70, 0.60, 0.54],
+  ],
+}
+
+function heatColor(v: number): string {
+  // 0 → green  0.5 → yellow  1 → red
+  const stops = [
+    [34,  197, 94],   // #22C55E green
+    [234, 179, 8],    // #EAB308 yellow
+    [239, 68,  68],   // #EF4444 red
+  ]
+  const t = Math.max(0, Math.min(1, v)) * (stops.length - 1)
+  const i = Math.min(Math.floor(t), stops.length - 2)
+  const f = t - i
+  const [r1,g1,b1] = stops[i], [r2,g2,b2] = stops[i+1]
+  return `rgb(${Math.round(r1+(r2-r1)*f)},${Math.round(g1+(g2-g1)*f)},${Math.round(b1+(b2-b1)*f)})`
+}
+
+const CongestionHeatmap = ({ algo }: { algo: AlgoData }) => {
+  const grid = HEATMAP_DATA[algo.id]
+  const COLS = 5, ROWS = 4
+  const OX = 28, OY = 20, SX = 56, SY = 46
+  const W = OX * 2 + (COLS - 1) * SX   // 280
+  const H = OY * 2 + (ROWS - 1) * SY   // 178
+  const iX = (c: number) => OX + c * SX
+  const iY = (r: number) => OY + r * SY
+  const segColor = (r1: number, c1: number, r2: number, c2: number) =>
+    heatColor((grid[r1][c1] + grid[r2][c2]) / 2)
+
+  return (
+    <GlassCard className="p-4 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Congestion Heatmap</h3>
+        <span className="text-[9px] italic" style={{ color: 'rgba(255,255,255,0.2)' }}>dummy data</span>
+      </div>
+
+      {/* Map */}
+      <div className="rounded-xl overflow-hidden relative"
+        style={{ background: 'rgba(3,7,18,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+          {/* Road bodies coloured by congestion */}
+          {Array.from({ length: ROWS }, (_, r) =>
+            Array.from({ length: COLS - 1 }, (_, c) => (
+              <line key={`h${r}-${c}`} x1={iX(c)} y1={iY(r)} x2={iX(c+1)} y2={iY(r)}
+                stroke={segColor(r, c, r, c+1)} strokeWidth="9" strokeLinecap="square" strokeOpacity="0.85" />
+            ))
+          )}
+          {Array.from({ length: COLS }, (_, c) =>
+            Array.from({ length: ROWS - 1 }, (_, r) => (
+              <line key={`v${c}-${r}`} x1={iX(c)} y1={iY(r)} x2={iX(c)} y2={iY(r+1)}
+                stroke={segColor(r, c, r+1, c)} strokeWidth="9" strokeLinecap="square" strokeOpacity="0.85" />
+            ))
+          )}
+          {/* Intersection dots */}
+          {Array.from({ length: ROWS }, (_, r) =>
+            Array.from({ length: COLS }, (_, c) => (
+              <circle key={`i${c}-${r}`} cx={iX(c)} cy={iY(r)} r="5"
+                fill={heatColor(grid[r][c])} stroke="rgba(0,0,0,0.4)" strokeWidth="1" />
+            ))
+          )}
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-2">
+        <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Low</span>
+        <div className="flex-1 h-1.5 rounded-full" style={{
+          background: 'linear-gradient(to right, #22C55E, #EAB308, #EF4444)',
+          opacity: 0.7,
+        }} />
+        <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>High</span>
       </div>
     </GlassCard>
   )
@@ -718,46 +844,31 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
         change={algo.changes.speed} sparkData={algo.sparklines.speed} />
     </div>
 
-    {/* Charts row: Algorithm Overview + Map Player */}
+    {/* Charts row: left column stack + Map Player */}
     <div className="grid grid-cols-3 gap-4">
-      {/* Algorithm Overview + Key Strengths (col 1) */}
-      <GlassCard className="p-5 flex flex-col gap-3">
-        <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Algorithm Overview</h3>
-        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>
-          {algo.description}
-        </p>
-
-        {/* Key Strengths */}
-        <div className="pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-          <p className="text-[11px] font-semibold uppercase tracking-wider mb-2"
-            style={{ color: 'rgba(255,255,255,0.32)' }}>Key Strengths</p>
-          <ul className="space-y-2">
-            {algo.strengths.map((s, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                <span className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[8px] font-bold mt-0.5"
-                  style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
-                  {i + 1}
-                </span>
-                {s}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Convergence / Reward (RL algorithms only) */}
-        {algo.convergence !== null && (
-          <div className="pt-3 grid grid-cols-2 gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.28)' }}>Convergence</div>
-              <div className="text-[17px] font-bold tabular-nums" style={{ color: algo.color }}>Ep. {algo.convergence}</div>
+      {/* Left column: Algorithm Overview + Heatmap stacked */}
+      <div className="flex flex-col gap-4">
+        <GlassCard className="p-5 flex flex-col gap-3">
+          <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Algorithm Overview</h3>
+          <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>
+            {algo.description}
+          </p>
+          {algo.convergence !== null && (
+            <div className="pt-3 grid grid-cols-2 gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.28)' }}>Convergence</div>
+                <div className="text-[17px] font-bold tabular-nums" style={{ color: algo.color }}>Ep. {algo.convergence}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.28)' }}>Cumulative Reward</div>
+                <div className="text-[17px] font-bold tabular-nums" style={{ color: algo.color }}>{algo.reward}</div>
+              </div>
             </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.28)' }}>Cumulative Reward</div>
-              <div className="text-[17px] font-bold tabular-nums" style={{ color: algo.color }}>{algo.reward}</div>
-            </div>
-          </div>
-        )}
-      </GlassCard>
+          )}
+        </GlassCard>
+
+        <CongestionHeatmap algo={algo} />
+      </div>
 
       {/* Map Player (col 2–3) */}
       <MapPlayer algo={algo} mapSize={mapSize} />
