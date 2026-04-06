@@ -579,8 +579,397 @@ const COMPARE_METRICS = [
   { label: 'Compute Time', unit: 'ms', key: 'computeTime' as const, max: 30, lowerBetter: true },
 ]
 
-const SummaryPage = ({ onNavigate }: { onNavigate: (p: Page) => void }) => (
+// ─── Compare helpers ──────────────────────────────────────────────────────────
+
+interface CompareConfig { left: AlgoKey; right: AlgoKey; mapSize: string; traffic: string }
+
+function detectConvergence(training: TrainingPoint[]): number | null {
+  if (!training.length) return null
+  const maVals = training.map(p => p.ma)
+  const range = Math.max(...maVals) - Math.min(...maVals)
+  if (range < 1) return training[0].episode
+  const W = 30
+  for (let i = W; i < maVals.length; i++) {
+    const window = maVals.slice(i - W, i)
+    if ((Math.max(...window) - Math.min(...window)) / range < 0.03) return training[i - W].episode
+  }
+  return training[training.length - 1].episode
+}
+
+function avgCpu(pts: CpuPoint[]): number {
+  if (!pts.length) return 0
+  return Math.round(pts.reduce((s, p) => s + p.cpu, 0) / pts.length)
+}
+
+function calcDelta(lv: number, rv: number, lowerBetter: boolean) {
+  const diff = lv - rv
+  const pct = rv !== 0 ? Math.abs(diff / rv) * 100 : 0
+  const leftWins: boolean | null = diff === 0 ? null : (lowerBetter ? diff < 0 : diff > 0)
+  return { diff, pct, leftWins }
+}
+
+// ─── Compare Modal ─────────────────────────────────────────────────────────────
+
+const MAP_OPTIONS = [
+  { key: '2km', label: '2 km²' },
+  { key: '0.75km', label: '0.75 km²' },
+  { key: '4x4', label: '4×4 Grid' },
+]
+const TRAFFIC_OPTIONS = [
+  { key: 'free_flow',   label: 'Free Flow',   sub: 'LOS A' },
+  { key: 'stable_flow', label: 'Stable Flow', sub: 'LOS C' },
+  { key: 'forced_flow', label: 'Forced Flow', sub: 'LOS E' },
+]
+
+function CompareModal({ onClose, onConfirm }: {
+  onClose: () => void
+  onConfirm: (cfg: CompareConfig) => void
+}) {
+  const [left, setLeft]       = useState<AlgoKey>('civiq')
+  const [right, setRight]     = useState<AlgoKey>('qmix')
+  const [mapSize, setMapSize] = useState('2km')
+  const [traffic, setTraffic] = useState('stable_flow')
+  const canRun = left !== right
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(10px)' }}>
+      <div className="relative w-full max-w-[480px] mx-4 p-6 rounded-2xl" style={{
+        background: 'linear-gradient(155deg, rgba(12,16,40,0.98) 0%, rgba(6,8,24,0.98) 100%)',
+        border: '1px solid rgba(255,255,255,0.14)',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)',
+      }}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-[15px] font-bold" style={{ color: 'rgba(255,255,255,0.92)' }}>Configure Comparison</h3>
+            <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.38)' }}>Select two algorithms and test conditions</p>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.14)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Algorithm selector */}
+        <div className="mb-4">
+          <p className="text-[9px] font-bold uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.32)' }}>Algorithms</p>
+          <div className="grid grid-cols-[1fr_36px_1fr] gap-2 items-start">
+            {/* Side A */}
+            <div className="space-y-1.5">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-center mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Side A</p>
+              {ALGO_LIST.map((a) => (
+                <button key={a.id} onClick={() => setLeft(a.id)} disabled={a.id === right}
+                  className="w-full px-3 py-2 rounded-xl text-left transition-all duration-150"
+                  style={{
+                    background: left === a.id ? a.colorDim : 'rgba(255,255,255,0.04)',
+                    border: left === a.id ? `1px solid ${a.border}` : '1px solid rgba(255,255,255,0.07)',
+                    color: left === a.id ? a.color : a.id === right ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.55)',
+                    cursor: a.id === right ? 'not-allowed' : 'pointer',
+                    opacity: a.id === right ? 0.35 : 1,
+                  }}>
+                  <div className="text-[11px] font-bold">{a.sublabel}</div>
+                  <div className="text-[9px] mt-0.5" style={{ opacity: 0.65 }}>{a.label}</div>
+                </button>
+              ))}
+            </div>
+            {/* VS divider */}
+            <div className="flex flex-col items-center pt-6 gap-1">
+              <div className="w-px flex-1" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}>VS</span>
+              <div className="w-px flex-1" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            </div>
+            {/* Side B */}
+            <div className="space-y-1.5">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-center mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Side B</p>
+              {ALGO_LIST.map((a) => (
+                <button key={a.id} onClick={() => setRight(a.id)} disabled={a.id === left}
+                  className="w-full px-3 py-2 rounded-xl text-left transition-all duration-150"
+                  style={{
+                    background: right === a.id ? a.colorDim : 'rgba(255,255,255,0.04)',
+                    border: right === a.id ? `1px solid ${a.border}` : '1px solid rgba(255,255,255,0.07)',
+                    color: right === a.id ? a.color : a.id === left ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.55)',
+                    cursor: a.id === left ? 'not-allowed' : 'pointer',
+                    opacity: a.id === left ? 0.35 : 1,
+                  }}>
+                  <div className="text-[11px] font-bold">{a.sublabel}</div>
+                  <div className="text-[9px] mt-0.5" style={{ opacity: 0.65 }}>{a.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="mb-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+
+        {/* Test Conditions */}
+        <div className="mb-5 space-y-3">
+          <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.32)' }}>Test Conditions</p>
+          <div>
+            <p className="text-[10px] mb-1.5" style={{ color: 'rgba(255,255,255,0.38)' }}>Map Size</p>
+            <div className="flex gap-1.5">
+              {MAP_OPTIONS.map(o => (
+                <button key={o.key} onClick={() => setMapSize(o.key)}
+                  className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-semibold transition-all duration-150"
+                  style={{
+                    background: mapSize === o.key ? 'rgba(6,182,212,0.14)' : 'rgba(255,255,255,0.04)',
+                    border: mapSize === o.key ? '1px solid rgba(6,182,212,0.4)' : '1px solid rgba(255,255,255,0.07)',
+                    color: mapSize === o.key ? '#06B6D4' : 'rgba(255,255,255,0.45)',
+                  }}>{o.label}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] mb-1.5" style={{ color: 'rgba(255,255,255,0.38)' }}>Traffic Scale</p>
+            <div className="flex gap-1.5">
+              {TRAFFIC_OPTIONS.map(o => (
+                <button key={o.key} onClick={() => setTraffic(o.key)}
+                  className="flex-1 px-2 py-2 rounded-lg text-center transition-all duration-150"
+                  style={{
+                    background: traffic === o.key ? 'rgba(6,182,212,0.14)' : 'rgba(255,255,255,0.04)',
+                    border: traffic === o.key ? '1px solid rgba(6,182,212,0.4)' : '1px solid rgba(255,255,255,0.07)',
+                    color: traffic === o.key ? '#06B6D4' : 'rgba(255,255,255,0.45)',
+                  }}>
+                  <div className="text-[10px] font-semibold">{o.label}</div>
+                  <div className="text-[9px] mt-0.5" style={{ opacity: 0.6 }}>{o.sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 py-2 rounded-xl text-[11px] font-semibold transition-all"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.45)' }}>
+            Cancel
+          </button>
+          <button onClick={() => canRun && onConfirm({ left, right, mapSize, traffic })}
+            disabled={!canRun}
+            className="flex-[2] py-2 rounded-xl text-[12px] font-bold transition-all flex items-center justify-center gap-2"
+            style={{
+              background: canRun ? 'linear-gradient(135deg, rgba(6,182,212,0.28) 0%, rgba(99,102,241,0.22) 100%)' : 'rgba(255,255,255,0.04)',
+              border: canRun ? '1px solid rgba(6,182,212,0.5)' : '1px solid rgba(255,255,255,0.07)',
+              color: canRun ? '#06B6D4' : 'rgba(255,255,255,0.2)',
+              boxShadow: canRun ? '0 0 20px rgba(6,182,212,0.18)' : 'none',
+              cursor: canRun ? 'pointer' : 'not-allowed',
+            }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" />
+            </svg>
+            Run Comparison
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Compare Page ──────────────────────────────────────────────────────────────
+
+interface KpiMetaDef {
+  label: string
+  unit: string
+  getValue: (a: AlgoData) => number
+  lowerBetter: boolean
+}
+
+const ROUTING_KPI: KpiMetaDef[] = [
+  { label: 'Average Travel Time',  unit: 'min',    getValue: a => a.travelTime, lowerBetter: true },
+  { label: 'Average Waiting Time', unit: 'sec',    getValue: a => a.waitTime,   lowerBetter: true },
+  { label: 'Network Throughput',   unit: 'veh/hr', getValue: a => a.throughput, lowerBetter: false },
+]
+const ENVIRON_KPI: KpiMetaDef[] = [
+  { label: 'Average CO₂ Emissions',    unit: 'g/km',    getValue: a => a.co2,  lowerBetter: true },
+  { label: 'Average Fuel Consumption', unit: 'l/100km', getValue: a => a.fuel, lowerBetter: true },
+]
+const COMPUTE_KPI: KpiMetaDef[] = [
+  { label: 'Real-time Factor', unit: '×',  getValue: a => a.speed,             lowerBetter: false },
+  { label: 'Decision Latency', unit: 'ms', getValue: a => a.computeTime,       lowerBetter: true },
+  { label: 'CPU Utilization',  unit: '%',  getValue: a => avgCpu(a.system.cpu), lowerBetter: true },
+]
+
+function MetricRow({ label, unit, lv, rv, lowerBetter, la, ra, intFmt }: {
+  label: string; unit: string; lv: number; rv: number
+  lowerBetter: boolean; la: AlgoData; ra: AlgoData; intFmt?: boolean
+}) {
+  const fmt = (v: number) => intFmt ? String(Math.round(v)) : String(v)
+  const d = calcDelta(lv, rv, lowerBetter)
+  const leftWins = d.leftWins === true
+  const rightWins = d.leftWins === false
+  const tie = d.leftWins === null
+  const WIN = '#4ADE80'
+  const leftValColor  = leftWins  ? WIN : rightWins ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.72)'
+  const rightValColor = rightWins ? WIN : leftWins  ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.72)'
+  const arrow = lv < rv ? '▼' : lv > rv ? '▲' : '—'
+  const deltaColor = tie ? 'rgba(255,255,255,0.35)' : leftWins ? '#4ADE80' : '#F87171'
+  const deltaBg    = tie ? 'rgba(255,255,255,0.05)' : leftWins ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)'
+  const deltaBorder = tie ? 'rgba(255,255,255,0.1)' : leftWins ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'
+  const deltaLabel = tie ? '— tied' : `${arrow} ${Math.abs(d.diff) < 1 ? Math.abs(d.diff).toFixed(2) : Math.abs(d.diff).toFixed(1)} (${d.pct.toFixed(1)}%)`
+
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-3"
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      {/* Left value */}
+      <div className="text-right">
+        <div className="text-[21px] font-black tabular-nums leading-none" style={{ color: leftValColor }}>{fmt(lv)}</div>
+        <div className="text-[9px] mt-0.5 tabular-nums" style={{ color: 'rgba(255,255,255,0.28)' }}>{unit}</div>
+        {leftWins && <div className="text-[8px] font-bold mt-1 uppercase tracking-wider" style={{ color: WIN }}>wins</div>}
+      </div>
+      {/* Center */}
+      <div className="text-center" style={{ minWidth: '148px' }}>
+        <div className="text-[10px] font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.52)' }}>{label}</div>
+        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold"
+          style={{ background: deltaBg, color: deltaColor, border: `1px solid ${deltaBorder}` }}>
+          {deltaLabel}
+        </div>
+      </div>
+      {/* Right value */}
+      <div className="text-left">
+        <div className="text-[21px] font-black tabular-nums leading-none" style={{ color: rightValColor }}>{fmt(rv)}</div>
+        <div className="text-[9px] mt-0.5 tabular-nums" style={{ color: 'rgba(255,255,255,0.28)' }}>{unit}</div>
+        {rightWins && <div className="text-[8px] font-bold mt-1 uppercase tracking-wider" style={{ color: WIN }}>wins</div>}
+      </div>
+    </div>
+  )
+}
+
+function CompareSection({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <GlassCard className="p-5">
+      <div className="flex items-center gap-2 mb-1 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        {icon}
+        <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>{title}</h3>
+      </div>
+      {children}
+    </GlassCard>
+  )
+}
+
+function ComparePage({ config, onBack }: { config: CompareConfig; onBack: () => void }) {
+  const la = ALGO[config.left]
+  const ra = ALGO[config.right]
+  const bothLearning = la.system.training.length > 0 && ra.system.training.length > 0
+  const convL = bothLearning ? detectConvergence(la.system.training) : null
+  const convR = bothLearning ? detectConvergence(ra.system.training) : null
+
+  const routingIcon = (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12h18M3 6h18M3 18h12" />
+    </svg>
+  )
+  const environIcon = (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20z" /><path d="M12 8v4l3 3" />
+    </svg>
+  )
+  const computeIcon = (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2" /><path d="M9 9h6M9 12h6M9 15h4" />
+    </svg>
+  )
+
+  return (
+    <div className="p-6 space-y-4">
+      {/* Back */}
+      <button onClick={onBack}
+        className="flex items-center gap-1.5 text-[11px] transition-colors"
+        style={{ color: 'rgba(255,255,255,0.38)' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.78)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.38)' }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        Back to Summary
+      </button>
+
+      {/* VS header */}
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-stretch">
+        <div className="rounded-2xl p-4 text-center" style={{ background: la.colorDim, border: `1px solid ${la.border}` }}>
+          <div className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: la.color }}>Side A</div>
+          <div className="text-[16px] font-black leading-tight" style={{ color: 'rgba(255,255,255,0.92)' }}>{la.label}</div>
+          <div className="text-[10px] mt-0.5 font-semibold" style={{ color: la.color }}>{la.sublabel}</div>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-1 px-2">
+          <div className="text-[13px] font-black" style={{ color: 'rgba(255,255,255,0.28)' }}>VS</div>
+          <div className="text-[9px] text-center mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.22)' }}>
+            {MAP_LABELS[config.mapSize] || config.mapSize}<br />
+            {TRAFFIC_LABELS[config.traffic] || config.traffic}
+          </div>
+        </div>
+        <div className="rounded-2xl p-4 text-center" style={{ background: ra.colorDim, border: `1px solid ${ra.border}` }}>
+          <div className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: ra.color }}>Side B</div>
+          <div className="text-[16px] font-black leading-tight" style={{ color: 'rgba(255,255,255,0.92)' }}>{ra.label}</div>
+          <div className="text-[10px] mt-0.5 font-semibold" style={{ color: ra.color }}>{ra.sublabel}</div>
+        </div>
+      </div>
+
+      {/* Column labels */}
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 px-1">
+        <div className="text-right text-[9px] font-bold uppercase tracking-wider" style={{ color: la.color }}>{la.sublabel}</div>
+        <div style={{ minWidth: '148px' }} />
+        <div className="text-left text-[9px] font-bold uppercase tracking-wider" style={{ color: ra.color }}>{ra.sublabel}</div>
+      </div>
+
+      {/* Routing Efficiency */}
+      <CompareSection title="Routing Efficiency" icon={routingIcon}>
+        {ROUTING_KPI.map(m => (
+          <MetricRow key={m.label} label={m.label} unit={m.unit}
+            lv={m.getValue(la)} rv={m.getValue(ra)} lowerBetter={m.lowerBetter} la={la} ra={ra} />
+        ))}
+      </CompareSection>
+
+      {/* Environmental Impact */}
+      <CompareSection title="Environmental Impact" icon={environIcon}>
+        {ENVIRON_KPI.map(m => (
+          <MetricRow key={m.label} label={m.label} unit={m.unit}
+            lv={m.getValue(la)} rv={m.getValue(ra)} lowerBetter={m.lowerBetter} la={la} ra={ra} />
+        ))}
+      </CompareSection>
+
+      {/* Computational Factors — only when both are learning-based */}
+      {bothLearning && (
+        <CompareSection title="Computational Factors" icon={computeIcon}>
+          {COMPUTE_KPI.map(m => (
+            <MetricRow key={m.label} label={m.label} unit={m.unit}
+              lv={m.getValue(la)} rv={m.getValue(ra)} lowerBetter={m.lowerBetter} la={la} ra={ra}
+              intFmt={m.label === 'CPU Utilization'} />
+          ))}
+          {convL !== null && convR !== null && (
+            <MetricRow label="Convergence Episode" unit="ep"
+              lv={convL} rv={convR} lowerBetter={true} la={la} ra={ra} intFmt />
+          )}
+        </CompareSection>
+      )}
+    </div>
+  )
+}
+
+// ─── Summary Page (stateful) ──────────────────────────────────────────────────
+
+function SummaryPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
+  const [compareOpen, setCompareOpen]         = useState(false)
+  const [compareConfig, setCompareConfig]     = useState<CompareConfig | null>(null)
+
+  if (compareConfig) {
+    return <ComparePage config={compareConfig} onBack={() => setCompareConfig(null)} />
+  }
+
+  return (
   <div className="p-6 space-y-5 overflow-y-auto" style={{ height: '100%' }}>
+    {compareOpen && (
+      <CompareModal
+        onClose={() => setCompareOpen(false)}
+        onConfirm={(cfg) => { setCompareOpen(false); setCompareConfig(cfg) }}
+      />
+    )}
     {/* Header */}
     <div className="flex items-center justify-between">
       <div>
@@ -598,16 +987,16 @@ const SummaryPage = ({ onNavigate }: { onNavigate: (p: Page) => void }) => (
         </div>
       </div>
       <button
-        disabled
+        onClick={() => setCompareOpen(true)}
         className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-bold transition-all duration-200"
         style={{
           background: 'linear-gradient(135deg, rgba(6,182,212,0.22) 0%, rgba(99,102,241,0.18) 100%)',
           border: '1px solid rgba(6,182,212,0.45)',
           color: '#06B6D4',
           boxShadow: '0 0 18px rgba(6,182,212,0.18)',
-          cursor: 'not-allowed',
-          opacity: 0.85,
         }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 28px rgba(6,182,212,0.35)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = '0 0 18px rgba(6,182,212,0.18)' }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" />
@@ -738,7 +1127,8 @@ const SummaryPage = ({ onNavigate }: { onNavigate: (p: Page) => void }) => (
       </div>
     </GlassCard>
   </div>
-)
+  )
+}
 
 // ─── Gauge Chart ──────────────────────────────────────────────────────────────
 // Wraps react-gauge-chart. To plug in real data, pass the live `value` and
