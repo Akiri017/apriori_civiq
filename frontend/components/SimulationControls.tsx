@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { IconChevronDown } from './icons'
 
@@ -40,10 +41,35 @@ interface GlassDropdownProps {
   isOpen: boolean
   onToggle: () => void
   darkMode?: boolean
+  openRight?: boolean
 }
 
-const GlassDropdown = ({ label, options, selected, onSelect, isOpen, onToggle, darkMode }: GlassDropdownProps) => {
+const GlassDropdown = ({ label, options, selected, onSelect, isOpen, onToggle, darkMode, openRight }: GlassDropdownProps) => {
   const selectedOption = options.find(opt => opt.value === selected)
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const [fixedPos, setFixedPos] = useState({ top: 0, left: 0 })
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  // Recompute fixed position whenever the panel opens (or window resizes while open)
+  useEffect(() => {
+    if (!isOpen || !openRight || !triggerRef.current) return
+    const update = () => {
+      const r = triggerRef.current!.getBoundingClientRect()
+      // Estimate panel height: header (~44px) + each option (~64px)
+      const estimatedH = options.length * 64 + 50
+      const maxTop = window.innerHeight - estimatedH - 12
+      setFixedPos({ top: Math.max(8, Math.min(r.top, maxTop)), left: r.right + 8 })
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
+  }, [isOpen, openRight, options.length])
 
   const triggerBg = darkMode
     ? isOpen ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.07)'
@@ -61,79 +87,83 @@ const GlassDropdown = ({ label, options, selected, onSelect, isOpen, onToggle, d
     ? isOpen ? '#06B6D4' : 'rgba(255,255,255,0.35)'
     : isOpen ? '#06B6D4' : '#94a3b8'
 
+  const chevronRotate = openRight
+    ? isOpen ? 'rotate(270deg)' : 'rotate(-90deg)'
+    : isOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+
+  const panelContent = (
+    <div
+      style={{
+        ...(openRight
+          ? { position: 'fixed' as const, top: fixedPos.top, left: fixedPos.left, width: '224px', zIndex: 9999 }
+          : { position: 'absolute' as const, top: 'calc(100% + 8px)', left: 0, right: 0, zIndex: 200 }),
+        background: darkMode ? '#0d1a2d' : 'rgba(255,255,255,0.96)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderRadius: '14px',
+        border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.8)',
+        boxShadow: darkMode ? '0 16px 48px rgba(0,0,0,0.7)' : '0 12px 40px rgba(0,0,0,0.12)',
+        maxHeight: 'calc(100vh - 24px)',
+        overflowY: 'auto' as const,
+      }}
+    >
+      {options.map((option, index) => (
+        <div
+          key={option.value}
+          onClick={(e) => { e.stopPropagation(); onSelect(option.value); onToggle() }}
+          className="px-4 py-3 cursor-pointer transition-colors duration-150"
+          style={{
+            borderBottom: index < options.length - 1
+              ? darkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.05)'
+              : 'none',
+            borderRadius: index === 0 ? '14px 14px 0 0' : index === options.length - 1 ? '0 0 14px 14px' : undefined,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = darkMode ? 'rgba(6,182,212,0.1)' : 'rgba(6,182,212,0.08)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+        >
+          <p className="font-semibold text-[12px]" style={{ color: darkMode ? '#e2e8f0' : '#1e293b' }}>
+            {option.label}
+          </p>
+          {option.description && (
+            <p className="text-[11px] mt-0.5 leading-snug" style={{ color: darkMode ? 'rgba(255,255,255,0.4)' : '#94a3b8' }}>
+              {option.description}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+
   return (
     <div className="relative flex-1 min-w-0">
       <div
+        ref={triggerRef}
         onClick={onToggle}
-        className="w-full px-4 py-3.5 flex items-center justify-between cursor-pointer transition-all duration-200"
+        className="w-full px-3 py-3 flex items-center justify-between cursor-pointer transition-all duration-200"
         style={{
           background: triggerBg,
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
-          borderRadius: '50px',
+          borderRadius: '9999px',
           border: triggerBorder,
           boxShadow: isOpen ? '0 4px 20px rgba(6,182,212,0.15)' : 'none',
         }}
       >
-        <span className="font-medium text-[14px] select-none truncate" style={{ color: textColor }}>
+        <span className="font-medium text-[12px] select-none truncate" style={{ color: textColor }}>
           {selectedOption?.label || label}
         </span>
         <div
-          className="transition-transform duration-200 flex-shrink-0 ml-2"
-          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', color: chevronColor }}
+          className="transition-transform duration-200 flex-shrink-0 ml-1.5"
+          style={{ transform: chevronRotate, color: chevronColor }}
         >
-          <IconChevronDown size={16} />
+          <IconChevronDown size={13} />
         </div>
       </div>
 
       {isOpen && (
-        <div
-          className="absolute top-full mt-2 left-0 right-0 z-[100]"
-          style={{
-            background: darkMode ? '#0d1a2d' : 'rgba(255,255,255,0.96)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            borderRadius: '16px',
-            border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.8)',
-            boxShadow: darkMode
-              ? '0 16px 48px rgba(0,0,0,0.6)'
-              : '0 12px 40px rgba(0,0,0,0.12)',
-          }}
-        >
-          {options.map((option, index) => (
-            <div
-              key={option.value}
-              onClick={(e) => {
-                e.stopPropagation()
-                onSelect(option.value)
-                onToggle()
-              }}
-              className="px-4 py-3 cursor-pointer transition-colors duration-150"
-              style={{
-                borderBottom: index < options.length - 1
-                  ? darkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.05)'
-                  : 'none',
-              }}
-              onMouseEnter={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background = darkMode
-                  ? 'rgba(6,182,212,0.1)'
-                  : 'rgba(6,182,212,0.08)'
-              }}
-              onMouseLeave={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-              }}
-            >
-              <p className="font-semibold text-[13px]" style={{ color: darkMode ? '#e2e8f0' : '#1e293b' }}>
-                {option.label}
-              </p>
-              {option.description && (
-                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: darkMode ? 'rgba(255,255,255,0.4)' : '#94a3b8' }}>
-                  {option.description}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+        openRight && mounted
+          ? createPortal(panelContent, document.body)
+          : panelContent
       )}
     </div>
   )
@@ -205,7 +235,7 @@ export const SimulationControls = ({
     <div
       ref={containerRef}
       className="w-full transition-all duration-200"
-      style={{ paddingBottom: openDropdown ? '220px' : '0px' }}
+      style={{ paddingBottom: openDropdown && !vertical ? '220px' : '0px' }}
     >
       {/* Header */}
       {!hideHeader && (
@@ -230,31 +260,38 @@ export const SimulationControls = ({
       )}
 
       {/* Dropdowns */}
-      <div className={`flex ${vertical ? 'flex-col' : 'flex-row'} gap-3 mb-4`}>
+      <div className={`flex ${vertical ? 'flex-col' : 'flex-row'} gap-2 mb-3`}>
         <GlassDropdown label="Map Size" options={mapSizeOptions} selected={mapSize} onSelect={setMapSize}
-          isOpen={openDropdown === 'mapSize'} onToggle={() => toggleDropdown('mapSize')} darkMode={darkMode} />
+          isOpen={openDropdown === 'mapSize'} onToggle={() => toggleDropdown('mapSize')}
+          darkMode={darkMode} openRight={vertical} />
         <GlassDropdown label="Traffic Scale" options={trafficScaleOptions} selected={trafficScale} onSelect={setTrafficScale}
-          isOpen={openDropdown === 'trafficScale'} onToggle={() => toggleDropdown('trafficScale')} darkMode={darkMode} />
+          isOpen={openDropdown === 'trafficScale'} onToggle={() => toggleDropdown('trafficScale')}
+          darkMode={darkMode} openRight={vertical} />
         <GlassDropdown label="Algorithm" options={algorithmOptions} selected={algorithm} onSelect={setAlgorithm}
-          isOpen={openDropdown === 'algorithm'} onToggle={() => toggleDropdown('algorithm')} darkMode={darkMode} />
+          isOpen={openDropdown === 'algorithm'} onToggle={() => toggleDropdown('algorithm')}
+          darkMode={darkMode} openRight={vertical} />
       </div>
 
       {/* Buttons */}
-      <div className={`flex ${vertical ? 'flex-col' : 'flex-row'} gap-3`}>
+      <div className={`flex ${vertical ? 'flex-col' : 'flex-row'} gap-2`}>
         <button
           onClick={handleSelectDefault}
-          className="flex-1 py-3 font-semibold text-[14px] transition-all duration-200 rounded-full"
-          style={{ background: 'transparent', border: `1.5px solid ${headerColor}`, color: headerColor }}
+          className="flex-1 py-2.5 font-semibold transition-all duration-200 rounded-full"
+          style={{
+            fontSize: vertical ? '11px' : '13px',
+            background: 'transparent', border: `1.5px solid ${headerColor}`, color: headerColor,
+          }}
           onMouseEnter={(e) => { ;(e.currentTarget as HTMLElement).style.background = 'rgba(6,182,212,0.1)' }}
           onMouseLeave={(e) => { ;(e.currentTarget as HTMLElement).style.background = 'transparent' }}
         >
-          Select Default
+          Use Default
         </button>
         <button
           onClick={handleRun}
           disabled={!isFormValid()}
-          className="flex-1 py-3 font-bold text-[14px] text-white transition-all duration-200 rounded-full"
+          className="flex-1 py-2.5 font-bold text-white transition-all duration-200 rounded-full"
           style={{
+            fontSize: vertical ? '12px' : '14px',
             background: isFormValid() ? 'linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)' : darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(148,163,184,0.4)',
             border: 'none',
             cursor: isFormValid() ? 'pointer' : 'not-allowed',

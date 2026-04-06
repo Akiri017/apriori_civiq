@@ -1220,10 +1220,6 @@ const Sidebar = ({ activePage, setActivePage, mapSize, trafficScale, algorithm1 
       />
     </div>
 
-    <div className="p-4 mt-auto flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.28)' }}>Thesis Research</div>
-      <div className="text-[11px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>OBU Traffic Sim v2</div>
-    </div>
   </div>
 )
 
