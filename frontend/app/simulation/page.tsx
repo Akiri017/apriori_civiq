@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { Suspense, useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { SimulationControls } from '@/components/SimulationControls'
@@ -988,7 +988,7 @@ const TRAFFIC_LABELS: Record<string, string> = {
 
 // ─── Main Export ───────────────────────────────────────────────────────────────
 
-export default function SimulationDashboard() {
+function SimulationDashboardContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const mapSize = searchParams.get('mapSize') || ''
@@ -1150,5 +1150,13 @@ export default function SimulationDashboard() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function SimulationDashboard() {
+  return (
+    <Suspense fallback={<main className="w-full h-screen" style={{ background: '#060112' }} />}>
+      <SimulationDashboardContent />
+    </Suspense>
   )
 }
