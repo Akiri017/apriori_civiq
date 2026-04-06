@@ -93,6 +93,7 @@ const GlassDropdown = ({ label, options, selected, onSelect, isOpen, onToggle, d
 
   const panelContent = (
     <div
+      data-dropdown-portal
       style={{
         ...(openRight
           ? { position: 'fixed' as const, top: fixedPos.top, left: fixedPos.left, width: '224px', zIndex: 9999 }
@@ -218,9 +219,11 @@ export const SimulationControls = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node) && openDropdown) {
-        setOpenDropdown(null)
-      }
+      const target = event.target as Element
+      // Don't close if the click is inside the container or inside a portal panel
+      if (containerRef.current?.contains(target)) return
+      if (target.closest('[data-dropdown-portal]')) return
+      setOpenDropdown(null)
     }
     if (openDropdown) {
       document.addEventListener('mousedown', handleClickOutside)

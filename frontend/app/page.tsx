@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { SimulationControls } from '@/components/SimulationControls'
 import { AboutSection } from '@/components/AboutSection'
@@ -8,30 +8,18 @@ import { ResearchersSection } from '@/components/ResearchersSection'
 import { Footer } from '@/components/Footer'
 
 const StatusBar = () => {
-  const [now, setNow] = useState<Date | null>(null)
-
-  useEffect(() => {
-    setNow(new Date())
-    const t = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(t)
-  }, [])
-
-  const timeStr = now
-    ? now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-    : '--:--'
-  const dateStr = now
-    ? now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-    : ''
-
+  const router = useRouter()
+  const NAV_LINKS = [
+    { label: 'About',        href: '/#about' },
+    { label: 'The Research', href: '/research' },
+    { label: 'Contact Us',   href: '/#contact' },
+  ]
   return (
     <div
       className="flex items-center justify-between px-7 py-2.5 flex-shrink-0"
-      style={{
-        background: 'rgba(0,0,0,0.35)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-      }}
+      style={{ background: 'rgba(0,0,0,0.35)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
     >
-      {/* Left — logo */}
+      {/* Left — logo (non-interactive on home, already here) */}
       <div className="flex items-center gap-2.5">
         <img src="/icons/civiq-logo.png" alt="Civiq" className="w-5 h-5 object-contain brightness-0 invert opacity-80" />
         <span className="font-bold text-[13px] tracking-widest" style={{ color: 'rgba(255,255,255,0.75)' }}>
@@ -42,34 +30,26 @@ const StatusBar = () => {
         </span>
       </div>
 
-      {/* Center — status icons */}
-      <div className="flex items-center gap-3.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
-        {/* WiFi */}
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-          <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-          <line x1="12" y1="20" x2="12.01" y2="20"/>
-        </svg>
-        {/* Signal bars */}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <rect x="1"  y="14" width="4" height="8" rx="1" opacity="1"/>
-          <rect x="7"  y="9"  width="4" height="13" rx="1" opacity="1"/>
-          <rect x="13" y="4"  width="4" height="18" rx="1" opacity="1"/>
-          <rect x="19" y="1"  width="4" height="21" rx="1" opacity="0.3"/>
-        </svg>
-        {/* 4G label */}
-        <span className="text-[10px] font-bold tracking-wider">4G</span>
-      </div>
-
-      {/* Right — date + time */}
-      <div className="flex items-center gap-4">
-        <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
-          {dateStr}
-        </span>
-        <span className="font-bold text-[17px] tabular-nums" style={{ color: 'rgba(255,255,255,0.9)' }}>
-          {timeStr}
-        </span>
+      {/* Right — nav buttons */}
+      <div className="flex items-center gap-1">
+        {NAV_LINKS.map(({ label, href }) => (
+          <button
+            key={label}
+            onClick={() => router.push(href)}
+            className="px-4 py-1.5 rounded-full text-[12px] font-medium transition-all duration-150"
+            style={{ color: 'rgba(255,255,255,0.52)', background: 'transparent' }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.9)'
+              ;(e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.52)'
+              ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
     </div>
   )
