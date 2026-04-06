@@ -917,18 +917,18 @@ export default function SimulationDashboard() {
   }, [mapSize, trafficScale, view, algorithm1, algorithm2, router])
 
   return (
-    <main className="w-full min-h-screen" style={{ position: 'relative' }}>
+    <main className="w-full h-screen overflow-hidden" style={{ position: 'relative' }}>
       {/* Base gradient */}
       <div className="fixed inset-0 pointer-events-none"
         style={{ background: 'linear-gradient(135deg, #060112 0%, #0b0320 40%, #040c1c 100%)', zIndex: -1 }} />
       <AnimatedBackground />
 
       {/* Outer wrapper */}
-      <div className="flex items-start justify-center"
-        style={{ minHeight: '100vh', padding: 'clamp(16px, 2vw, 28px)', zIndex: 2, position: 'relative', overflowX: 'auto' }}>
+      <div className="flex items-stretch justify-center"
+        style={{ height: '100vh', padding: 'clamp(10px, 1.2vw, 18px)', zIndex: 2, position: 'relative', overflowX: 'auto' }}>
 
         {/* OBU Bezel */}
-        <div className="relative w-full" style={{
+        <div className="relative w-full flex flex-col" style={{
           minWidth: '1400px', maxWidth: '1640px',
           background: 'rgba(8, 14, 32, 0.48)',
           backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)',
@@ -947,13 +947,13 @@ export default function SimulationDashboard() {
           ))}
 
           {/* Screen */}
-          <div className="relative w-full flex flex-col overflow-hidden"
+          <div className="relative flex flex-col overflow-hidden"
             style={{
+              flex: 1,
               background: 'rgba(6, 11, 26, 0.45)',
               backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
               borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
-              minHeight: 'calc(100vh - 80px)',
             }}>
             {/* Top gloss */}
             <div className="absolute inset-x-0 top-0 h-20 pointer-events-none rounded-t-[14px]"
