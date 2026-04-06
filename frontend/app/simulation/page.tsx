@@ -54,6 +54,20 @@ const StatusBar = () => {
 type AlgoKey = 'civiq' | 'qmix' | 'selfish'
 type Page = 'summary' | AlgoKey
 
+// Sparkline series type — swap in real API data once backend is connected
+export interface KpiSeries {
+  travelTime: number[]
+  waitTime: number[]
+  throughput: number[]
+  speed: number[]
+}
+export interface KpiChanges {
+  travelTime: number   // % vs first data point
+  waitTime: number
+  throughput: number
+  speed: number
+}
+
 interface AlgoData {
   id: AlgoKey
   label: string
@@ -75,6 +89,9 @@ interface AlgoData {
   description: string
   strengths: string[]
   scores: number[]
+  // Pluggable time-series — replace with real API data when backend is ready
+  sparklines: KpiSeries
+  changes: KpiChanges
 }
 
 const ALGO: Record<AlgoKey, AlgoData> = {
@@ -86,6 +103,13 @@ const ALGO: Record<AlgoKey, AlgoData> = {
     description: 'Civiq employs a hierarchical two-tier coordination mechanism where a global orchestrator assigns zone-level routing goals, while local agents optimize intersection-level decisions using QMIX. This architecture enables scalable, cooperative traffic management that generalizes across varying network topologies and traffic densities.',
     strengths: ['Lowest travel time across all scenarios', 'Best emission reduction (37% vs baseline)', 'Superior network throughput coordination', 'Scalable to larger road networks'],
     scores: [0.90, 0.90, 0.88, 0.70, 0.88, 0.88, 0.82],
+    sparklines: {
+      travelTime:  [8.5, 7.8, 7.1, 6.4, 5.9, 5.3, 4.9, 4.6, 4.4, 4.2],
+      waitTime:    [36, 32, 29, 26, 24, 22, 21, 20, 19, 18.5],
+      throughput:  [1380, 1480, 1570, 1650, 1710, 1760, 1810, 1840, 1862, 1875],
+      speed:       [27, 31, 35, 38, 40, 42, 43, 44, 44.8, 45.2],
+    },
+    changes: { travelTime: -50.6, waitTime: -48.6, throughput: 35.9, speed: 67.4 },
   },
   qmix: {
     id: 'qmix', label: 'Monolithic QMIX', sublabel: 'Baseline RL', rank: 2,
@@ -95,6 +119,13 @@ const ALGO: Record<AlgoKey, AlgoData> = {
     description: 'Monolithic QMIX applies centralized multi-agent reinforcement learning where all agents share a joint action-value function. While effective at coordination, the monolithic architecture faces scalability limitations as network size grows, requiring more training episodes and compute to converge on larger topologies.',
     strengths: ['Fastest compute time per decision step', 'Good coordination at small scale', 'Solid baseline RL performance', 'Well-established QMIX framework'],
     scores: [0.80, 0.70, 0.70, 0.90, 0.72, 0.72, 0.75],
+    sparklines: {
+      travelTime:  [10.2, 9.5, 8.9, 8.3, 7.8, 7.3, 6.9, 6.5, 6.1, 5.8],
+      waitTime:    [42, 39, 36, 34, 32, 30, 29, 28, 27, 26.3],
+      throughput:  [1280, 1360, 1430, 1500, 1560, 1610, 1650, 1685, 1705, 1720],
+      speed:       [23, 26, 29, 32, 34, 36, 37, 38, 38.3, 38.5],
+    },
+    changes: { travelTime: -43.1, waitTime: -37.4, throughput: 34.4, speed: 67.4 },
   },
   selfish: {
     id: 'selfish', label: 'Selfish Routing', sublabel: 'Nash Equilibrium', rank: 3,
@@ -104,6 +135,13 @@ const ALGO: Record<AlgoKey, AlgoData> = {
     description: 'Selfish Routing models each vehicle independently optimizing its own route via shortest-path algorithms, representing the Nash Equilibrium state of the network. Without coordination, vehicles converge on popular routes causing Braess\'s Paradox — where adding road capacity can paradoxically worsen network-wide performance.',
     strengths: ['No training or setup required', 'Simple and fully interpretable', 'Establishes the Price of Anarchy baseline', 'Handles novel edge cases naturally'],
     scores: [0.58, 0.42, 0.40, 0.80, 0.42, 0.52, 0.70],
+    sparklines: {
+      travelTime:  [7.9, 8.4, 7.7, 8.5, 8.0, 8.6, 7.8, 8.3, 8.0, 8.1],
+      waitTime:    [34, 37, 33, 38, 35, 37, 34, 36, 35, 35],
+      throughput:  [1460, 1435, 1455, 1420, 1445, 1415, 1440, 1425, 1432, 1428],
+      speed:       [29.1, 27.5, 29.3, 27.8, 28.6, 27.9, 28.5, 28.0, 28.4, 28.3],
+    },
+    changes: { travelTime: 2.5, waitTime: 2.9, throughput: -2.2, speed: -2.7 },
   },
 }
 
@@ -115,32 +153,108 @@ const GlassCard = ({
   children, className = '', style = {},
 }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) => (
   <div className={className} style={{
-    background: 'rgba(255,255,255,0.05)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    background: 'linear-gradient(155deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid rgba(255,255,255,0.14)',
     borderRadius: '16px',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.13), inset 0 -1px 0 rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.32)',
     ...style,
   }}>{children}</div>
 )
 
-const KpiCard = ({ label, value, unit, sub, color }: {
-  label: string; value: string | number; unit: string; sub?: string; color: string
-}) => (
-  <GlassCard className="p-5 flex flex-col gap-1.5 transition-colors duration-200 hover:border-white/20">
-    <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-    <div className="flex items-baseline gap-1.5">
-      <span className="text-[28px] font-bold tabular-nums leading-none" style={{ color }}>{value}</span>
-      <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>{unit}</span>
-    </div>
-    {sub && <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{sub}</span>}
-  </GlassCard>
-)
+// ─── Sparkline ────────────────────────────────────────────────────────────────
+
+const SparkLine = ({ data, color }: { data: number[]; color: string }) => {
+  if (!data || data.length < 2) return null
+  const W = 96, H = 44, PAD = 2
+  const min = Math.min(...data), max = Math.max(...data)
+  const range = max - min || 1
+  const pts = data.map((v, i) => ({
+    x: PAD + (i / (data.length - 1)) * (W - PAD * 2),
+    y: PAD + (H - PAD * 2) - ((v - min) / range) * (H - PAD * 2),
+  }))
+  const linePts = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  const areaPts = [
+    `${pts[0].x.toFixed(1)},${H}`,
+    ...pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`),
+    `${pts[pts.length - 1].x.toFixed(1)},${H}`,
+  ].join(' ')
+  const gid = `sp-${color.replace('#', '')}`
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible', flexShrink: 0 }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={areaPts} fill={`url(#${gid})`} />
+      <polyline points={linePts} fill="none" stroke={color} strokeWidth="2"
+        strokeLinecap="round" strokeLinejoin="round" />
+      {/* last-point dot */}
+      <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="2.5"
+        fill={color} />
+    </svg>
+  )
+}
+
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
+
+const KpiCard = ({ label, abbr, value, unit, sub, color, colorDim, borderColor, change, sparkData }: {
+  label: string; abbr?: string; value: string | number; unit: string
+  sub?: string; color: string; colorDim?: string; borderColor?: string
+  change?: number; sparkData?: number[]
+}) => {
+  const isPos = (change ?? 0) >= 0
+  const changeColor = isPos ? '#4ADE80' : '#F87171'
+  const changeArrow = isPos ? '▲' : '▼'
+  return (
+    <GlassCard className="p-4 flex flex-col gap-2.5 transition-all duration-200"
+      style={{
+        background: colorDim
+          ? `linear-gradient(145deg, ${colorDim.replace('0.12', '0.10')} 0%, rgba(255,255,255,0.03) 100%)`
+          : undefined,
+        border: borderColor ? `1px solid ${borderColor.replace('0.3', '0.25')}` : undefined,
+      }}>
+      {/* Title */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wider leading-none"
+          style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {label}{abbr ? ` (${abbr})` : ''}
+        </span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+
+      {/* Value row + sparkline */}
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-[26px] font-bold tabular-nums leading-none" style={{ color }}>{value}</span>
+            <span className="text-[12px] font-medium" style={{ color: 'rgba(255,255,255,0.38)' }}>{unit}</span>
+            {change !== undefined && (
+              <span className="text-[11px] font-bold tabular-nums"
+                style={{ color: changeColor }}>
+                {changeArrow} {Math.abs(change).toFixed(1)}%
+              </span>
+            )}
+          </div>
+          {sub && <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.26)' }}>{sub}</span>}
+        </div>
+        {sparkData && <SparkLine data={sparkData} color={color} />}
+      </div>
+    </GlassCard>
+  )
+}
 
 const HBar = ({ value, max, color, dim = false }: { value: number; max: number; color: string; dim?: boolean }) => (
-  <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }}>
+  <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.25)' }}>
     <div className="h-full rounded-full transition-all duration-700"
-      style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: color, opacity: dim ? 0.4 : 1 }} />
+      style={{ width: `${Math.min(100, (value / max) * 100)}%`, background: color, opacity: dim ? 0.45 : 1 }} />
   </div>
 )
 
@@ -180,11 +294,11 @@ const RadarChart = () => (
   <svg viewBox="0 0 350 350" className="w-full max-w-[320px] mx-auto">
     {[0.25, 0.5, 0.75, 1].map((r) => (
       <polygon key={r} points={rPts(Array(7).fill(r))}
-        fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
+        fill="none" stroke="rgba(255,255,255,0.11)" strokeWidth="1" />
     ))}
     {RADAR_AXES.map((_, i) => {
       const pt = { x: RC.x + RR * Math.cos(-Math.PI / 2 + (2 * Math.PI * i) / RADAR_AXES.length), y: RC.y + RR * Math.sin(-Math.PI / 2 + (2 * Math.PI * i) / RADAR_AXES.length) }
-      return <line key={i} x1={RC.x} y1={RC.y} x2={pt.x} y2={pt.y} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
+      return <line key={i} x1={RC.x} y1={RC.y} x2={pt.x} y2={pt.y} stroke="rgba(255,255,255,0.11)" strokeWidth="1" />
     })}
     <polygon points={rPts(ALGO.selfish.scores)} fill="rgba(248,113,113,0.12)" stroke="#F87171" strokeWidth="1.5" strokeLinejoin="round" />
     <polygon points={rPts(ALGO.qmix.scores)} fill="rgba(167,139,250,0.12)" stroke="#A78BFA" strokeWidth="1.5" strokeLinejoin="round" />
@@ -316,9 +430,9 @@ const SummaryPage = () => (
                     return (
                       <div key={a.id} className="flex items-center gap-2.5">
                         <span className="text-[10px] w-10 text-right tabular-nums" style={{ color: 'rgba(255,255,255,0.4)' }}>{val}</span>
-                        <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                        <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.25)' }}>
                           <div className="h-full rounded-full transition-all duration-700"
-                            style={{ width: `${barW}%`, background: a.color, opacity: isBest ? 1 : 0.38 }} />
+                            style={{ width: `${barW}%`, background: a.color, opacity: isBest ? 1 : 0.42 }} />
                         </div>
                         <div className="w-3.5 flex items-center justify-center">
                           {isBest && <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#22C55E" /></svg>}
@@ -349,14 +463,215 @@ const SummaryPage = () => (
   </div>
 )
 
+// ─── Map Player ───────────────────────────────────────────────────────────────
+// When backend is connected, pass vehicleTrajectories: VehicleTrajectory[]
+// and replace DUMMY_VEHICLES with real positional data.
+export interface VehicleTrajectory {
+  id: string
+  positions: { x: number; y: number; t: number }[]
+}
+
+const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
+  const [playing, setPlaying] = useState(false)
+  const [step, setStep] = useState(0)
+  const [speed, setSpeed] = useState(1)
+  const MAX_STEPS = 300
+
+  useEffect(() => {
+    if (!playing) return
+    const ms = Math.round(80 / speed)
+    const id = setInterval(() => {
+      setStep(s => {
+        if (s >= MAX_STEPS - 1) { setPlaying(false); return MAX_STEPS - 1 }
+        return s + 1
+      })
+    }, ms)
+    return () => clearInterval(id)
+  }, [playing, speed])
+
+  // Grid geometry — 5 cols × 4 rows of intersections
+  const COLS = 5, ROWS = 4
+  const OX = 28, OY = 24, SX = 56, SY = 50
+  const iX = (c: number) => OX + c * SX
+  const iY = (r: number) => OY + r * SY
+  const W = OX * 2 + (COLS - 1) * SX   // 280
+  const H = OY * 2 + (ROWS - 1) * SY   // 198
+
+  // Dummy vehicle routes — circular paths through grid nodes [col, row]
+  // Replace with real VehicleTrajectory[] from API when backend is ready
+  const DUMMY_VEHICLES: { route: [number, number][]; offset: number }[] = [
+    { route: [[0,0],[1,0],[2,0],[3,0],[4,0],[4,1],[4,2],[4,3],[3,3],[2,3],[1,3],[0,3],[0,2],[0,1]], offset: 0 },
+    { route: [[1,1],[2,1],[3,1],[3,2],[2,2],[1,2]], offset: 50 },
+    { route: [[0,0],[1,0],[1,1],[1,2],[1,3],[2,3],[3,3],[3,2],[3,1],[3,0],[4,0]], offset: 100 },
+    { route: [[2,0],[2,1],[2,2],[2,3],[3,3],[3,2],[3,1]], offset: 25 },
+    { route: [[0,2],[1,2],[2,2],[3,2],[4,2],[4,1],[3,1]], offset: 170 },
+    { route: [[4,0],[4,1],[3,1],[2,1],[1,1],[0,1],[0,2],[1,2]], offset: 220 },
+    { route: [[0,3],[1,3],[2,3],[2,2],[2,1],[2,0],[3,0],[4,0],[4,1]], offset: 75 },
+    { route: [[3,0],[3,1],[4,1],[4,2],[3,2],[2,2],[1,2],[0,2],[0,1],[1,1]], offset: 140 },
+    { route: [[1,0],[1,1],[0,1],[0,2],[1,2],[2,2],[2,3],[3,3],[4,3]], offset: 200 },
+    { route: [[4,3],[3,3],[2,3],[1,3],[0,3],[0,2],[0,1],[0,0],[1,0],[2,0]], offset: 260 },
+  ]
+
+  const getPos = (route: [number, number][], offset: number) => {
+    const t = (step + offset) % MAX_STEPS
+    const segCount = route.length
+    const segLen = MAX_STEPS / segCount
+    const rawSeg = Math.floor(t / segLen)
+    const segIdx = rawSeg % segCount
+    const segT = (t % segLen) / segLen
+    const from = route[segIdx]
+    const to = route[(segIdx + 1) % route.length]
+    return {
+      x: iX(from[0]) + (iX(to[0]) - iX(from[0])) * segT,
+      y: iY(from[1]) + (iY(to[1]) - iY(from[1])) * segT,
+    }
+  }
+
+  const simSec = Math.floor((step / MAX_STEPS) * 3600)
+  const simTime = `${String(Math.floor(simSec / 60)).padStart(2, '0')}:${String(simSec % 60).padStart(2, '0')}`
+  const started = playing || step > 0
+
+  return (
+    <GlassCard className="p-4 flex flex-col gap-3 col-span-2">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Map Player</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded tabular-nums"
+            style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
+            {simTime}
+          </span>
+          <span className="text-[10px] px-2 py-0.5 rounded"
+            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}>
+            {MAP_LABELS[mapSize] || mapSize || '—'}
+          </span>
+          <span className="text-[9px] italic" style={{ color: 'rgba(255,255,255,0.2)' }}>dummy data</span>
+        </div>
+      </div>
+
+      {/* Map canvas */}
+      <div className="rounded-xl overflow-hidden relative flex-1"
+        style={{ background: 'rgba(3,7,18,0.75)', border: '1px solid rgba(255,255,255,0.07)', minHeight: '180px' }}>
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: `radial-gradient(ellipse 70% 60% at 50% 50%, ${algo.colorDim}, transparent 80%)` }} />
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', position: 'relative' }}>
+          {/* Road bodies */}
+          {Array.from({ length: ROWS }, (_, r) =>
+            Array.from({ length: COLS - 1 }, (_, c) => (
+              <line key={`h${r}-${c}`} x1={iX(c)} y1={iY(r)} x2={iX(c+1)} y2={iY(r)}
+                stroke="rgba(255,255,255,0.12)" strokeWidth="10" strokeLinecap="square" />
+            ))
+          )}
+          {Array.from({ length: COLS }, (_, c) =>
+            Array.from({ length: ROWS - 1 }, (_, r) => (
+              <line key={`v${c}-${r}`} x1={iX(c)} y1={iY(r)} x2={iX(c)} y2={iY(r+1)}
+                stroke="rgba(255,255,255,0.12)" strokeWidth="10" strokeLinecap="square" />
+            ))
+          )}
+          {/* Centre dashes */}
+          {Array.from({ length: ROWS }, (_, r) =>
+            Array.from({ length: COLS - 1 }, (_, c) => (
+              <line key={`hd${r}-${c}`} x1={iX(c)} y1={iY(r)} x2={iX(c+1)} y2={iY(r)}
+                stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="5 4" />
+            ))
+          )}
+          {Array.from({ length: COLS }, (_, c) =>
+            Array.from({ length: ROWS - 1 }, (_, r) => (
+              <line key={`vd${c}-${r}`} x1={iX(c)} y1={iY(r)} x2={iX(c)} y2={iY(r+1)}
+                stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="5 4" />
+            ))
+          )}
+          {/* Intersection boxes */}
+          {Array.from({ length: ROWS }, (_, r) =>
+            Array.from({ length: COLS }, (_, c) => (
+              <rect key={`i${c}-${r}`} x={iX(c)-5} y={iY(r)-5} width="10" height="10" rx="2"
+                fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.75" />
+            ))
+          )}
+          {/* Vehicles */}
+          {started ? DUMMY_VEHICLES.map((v, i) => {
+            const pos = getPos(v.route, v.offset)
+            return (
+              <g key={i}>
+                <circle cx={pos.x} cy={pos.y} r="7" fill={algo.color} opacity="0.12" />
+                <circle cx={pos.x} cy={pos.y} r="3.5" fill={algo.color} opacity="0.92" />
+                <circle cx={pos.x} cy={pos.y} r="1.5" fill="white" opacity="0.5" />
+              </g>
+            )
+          }) : (
+            <text x={W / 2} y={H / 2} textAnchor="middle" dominantBaseline="middle"
+              fontSize="11" fill="rgba(255,255,255,0.22)" fontWeight="500">
+              Press ▶ to start simulation
+            </text>
+          )}
+        </svg>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center gap-2.5">
+        {/* Restart */}
+        <button onClick={() => { setStep(0); setPlaying(false) }}
+          className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center"
+          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)"
+            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+        </button>
+        {/* Play / Pause */}
+        <button onClick={() => setPlaying(p => !p)}
+          className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center transition-colors duration-150"
+          style={{ background: algo.colorDim, border: `1px solid ${algo.border}` }}>
+          {playing ? (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill={algo.color}>
+              <rect x="1" y="1" width="3" height="8" rx="0.5"/>
+              <rect x="6" y="1" width="3" height="8" rx="0.5"/>
+            </svg>
+          ) : (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill={algo.color}>
+              <path d="M2 1 L9 5 L2 9 Z"/>
+            </svg>
+          )}
+        </button>
+        {/* Seek bar */}
+        <div className="flex-1 h-1.5 rounded-full relative cursor-pointer"
+          style={{ background: 'rgba(255,255,255,0.1)' }}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            setStep(Math.round(((e.clientX - rect.left) / rect.width) * (MAX_STEPS - 1)))
+          }}>
+          <div className="h-full rounded-full transition-none"
+            style={{ width: `${(step / (MAX_STEPS - 1)) * 100}%`, background: algo.color }} />
+          <div className="absolute top-1/2 w-3 h-3 rounded-full pointer-events-none"
+            style={{
+              left: `${(step / (MAX_STEPS - 1)) * 100}%`,
+              transform: 'translate(-50%, -50%)',
+              background: 'white',
+              boxShadow: `0 0 6px ${algo.color}, 0 0 0 2px ${algo.color}`,
+            }} />
+        </div>
+        {/* Speed */}
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {[0.5, 1, 2, 4].map(s => (
+            <button key={s} onClick={() => setSpeed(s)}
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded transition-colors duration-150"
+              style={{
+                background: speed === s ? algo.colorDim : 'transparent',
+                color: speed === s ? algo.color : 'rgba(255,255,255,0.28)',
+                border: speed === s ? `1px solid ${algo.border}` : '1px solid transparent',
+              }}>
+              {s}×
+            </button>
+          ))}
+        </div>
+      </div>
+    </GlassCard>
+  )
+}
+
 // ─── Algorithm Detail Page ─────────────────────────────────────────────────────
 
-const DETAIL_METRICS = [
-  { label: 'Travel Time', unit: 'min', key: 'travelTime' as const, max: 10 },
-  { label: 'Throughput', unit: 'veh/hr', key: 'throughput' as const, max: 2000 },
-  { label: 'CO₂ Emissions', unit: 'g/km', key: 'co2' as const, max: 280 },
-  { label: 'Avg Speed', unit: 'km/h', key: 'speed' as const, max: 60 },
-]
 
 const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
   algo: AlgoData; mapSize: string; trafficScale: string
@@ -364,12 +679,9 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
   <div className="p-6 space-y-5 overflow-y-auto" style={{ height: '100%' }}>
     {/* Header */}
     <div className="flex items-center justify-between gap-4">
-      {/* Left: name + subtitle */}
       <div>
         <h2 className="text-xl font-bold leading-tight" style={{ color: 'rgba(255,255,255,0.9)' }}>{algo.label}</h2>
       </div>
-
-      {/* Centre: simulation parameter badges */}
       <div className="flex items-center gap-2 flex-1">
         {mapSize && (
           <span className="text-[11px] font-medium px-2.5 py-1 rounded-full"
@@ -384,120 +696,72 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
           </span>
         )}
       </div>
-
-      {/* Right: efficiency pill */}
       <div className="px-4 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0"
         style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
         {algo.efficiency}% Efficiency Score
       </div>
     </div>
 
-    {/* Algorithm Overview — top */}
-    <GlassCard className="p-5">
-      <h3 className="text-[13px] font-bold mb-2" style={{ color: 'rgba(255,255,255,0.78)' }}>Algorithm Overview</h3>
-      <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>{algo.description}</p>
-    </GlassCard>
-
-    {/* KPI Row */}
+    {/* KPI Row — directly below header */}
     <div className="grid grid-cols-4 gap-4">
-      <KpiCard label="Avg. Travel Time" value={algo.travelTime} unit="min" sub="Per vehicle trip" color={algo.color} />
-      <KpiCard label="Avg. Wait Time" value={algo.waitTime} unit="sec" sub="At intersections" color={algo.color} />
-      <KpiCard label="Throughput" value={algo.throughput.toLocaleString()} unit="veh/hr" sub="Vehicles processed" color={algo.color} />
-      <KpiCard label="Avg. Speed" value={algo.speed} unit="km/h" sub="Network-wide" color={algo.color} />
+      <KpiCard label="Avg. Travel Time" abbr="ATT" value={algo.travelTime} unit="min" sub="Per vehicle trip"
+        color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
+        change={algo.changes.travelTime} sparkData={algo.sparklines.travelTime} />
+      <KpiCard label="Avg. Wait Time" abbr="AWT" value={algo.waitTime} unit="sec" sub="At intersections"
+        color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
+        change={algo.changes.waitTime} sparkData={algo.sparklines.waitTime} />
+      <KpiCard label="Throughput" abbr="TPT" value={algo.throughput.toLocaleString()} unit="veh/hr" sub="Vehicles processed"
+        color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
+        change={algo.changes.throughput} sparkData={algo.sparklines.throughput} />
+      <KpiCard label="Avg. Speed" abbr="SPD" value={algo.speed} unit="km/h" sub="Network-wide"
+        color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
+        change={algo.changes.speed} sparkData={algo.sparklines.speed} />
     </div>
 
-    {/* Charts row */}
+    {/* Charts row: Algorithm Overview + Map Player */}
     <div className="grid grid-cols-3 gap-4">
-      {/* Efficiency ring */}
-      <GlassCard className="p-5 flex flex-col gap-4">
-        <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Efficiency Overview</h3>
-        <div className="flex items-center gap-5">
-          <div className="relative flex-shrink-0 flex items-center justify-center">
-            <RingChart value={algo.efficiency} color={algo.color} size={96} />
-            <div className="absolute text-center pointer-events-none">
-              <div className="text-[18px] font-bold leading-none" style={{ color: algo.color }}>{algo.efficiency}%</div>
-            </div>
-          </div>
-          <div className="flex-1 space-y-3 text-[12px]">
-            {[
-              { label: 'CO₂', value: algo.co2, displayMax: 280, unit: 'g/km' },
-              { label: 'Fuel', value: algo.fuel, displayMax: 50, unit: 'L/100' },
-              { label: 'Compute', value: algo.computeTime, displayMax: 30, unit: 'ms' },
-            ].map(({ label, value, displayMax, unit }) => (
-              <div key={label}>
-                <div className="flex justify-between mb-1">
-                  <span style={{ color: 'rgba(255,255,255,0.42)' }}>{label}</span>
-                  <span style={{ color: 'rgba(255,255,255,0.78)' }}>{value} <span style={{ color: 'rgba(255,255,255,0.3)' }}>{unit}</span></span>
-                </div>
-                <HBar value={displayMax - value} max={displayMax} color={algo.color} />
-              </div>
+      {/* Algorithm Overview + Key Strengths (col 1) */}
+      <GlassCard className="p-5 flex flex-col gap-3">
+        <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Algorithm Overview</h3>
+        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>
+          {algo.description}
+        </p>
+
+        {/* Key Strengths */}
+        <div className="pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <p className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+            style={{ color: 'rgba(255,255,255,0.32)' }}>Key Strengths</p>
+          <ul className="space-y-2">
+            {algo.strengths.map((s, i) => (
+              <li key={i} className="flex items-start gap-2 text-[12px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                <span className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[8px] font-bold mt-0.5"
+                  style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
+                  {i + 1}
+                </span>
+                {s}
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
-      </GlassCard>
 
-      {/* vs Others */}
-      <GlassCard className="p-5 col-span-2">
-        <h3 className="text-[13px] font-bold mb-4" style={{ color: 'rgba(255,255,255,0.78)' }}>Comparison vs Other Algorithms</h3>
-        <div className="space-y-4">
-          {DETAIL_METRICS.map((m) => (
-            <div key={m.key}>
-              <div className="flex justify-between items-baseline mb-1.5">
-                <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.48)' }}>{m.label}</span>
-                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.28)' }}>{m.unit}</span>
-              </div>
-              <div className="space-y-1.5">
-                {ALGO_LIST.map((a) => (
-                  <div key={a.id} className="flex items-center gap-3">
-                    <span className="text-[10px] w-[72px] text-right" style={{ color: a.id === algo.id ? a.color : 'rgba(255,255,255,0.3)' }}>
-                      {a.sublabel}
-                    </span>
-                    <div className="flex-1 h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }}>
-                      <div className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${Math.min(100, ((a[m.key] as number) / m.max) * 100)}%`,
-                          background: a.id === algo.id ? a.color : 'rgba(255,255,255,0.18)',
-                        }} />
-                    </div>
-                    <span className="text-[10px] w-12 tabular-nums text-right" style={{ color: 'rgba(255,255,255,0.42)' }}>
-                      {a[m.key]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
-    </div>
-
-    {/* Key Strengths */}
-    <GlassCard className="p-5">
-      <h3 className="text-[13px] font-bold mb-3" style={{ color: 'rgba(255,255,255,0.78)' }}>Key Strengths</h3>
-        <ul className="space-y-2.5">
-          {algo.strengths.map((s, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-[12px]" style={{ color: 'rgba(255,255,255,0.58)' }}>
-              <span className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold mt-0.5"
-                style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
-                {i + 1}
-              </span>
-              {s}
-            </li>
-          ))}
-        </ul>
+        {/* Convergence / Reward (RL algorithms only) */}
         {algo.convergence !== null && (
-          <div className="mt-4 pt-4 grid grid-cols-2 gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="pt-3 grid grid-cols-2 gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
             <div>
-              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.32)' }}>Convergence</div>
-              <div className="text-[18px] font-bold tabular-nums" style={{ color: algo.color }}>Ep. {algo.convergence}</div>
+              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.28)' }}>Convergence</div>
+              <div className="text-[17px] font-bold tabular-nums" style={{ color: algo.color }}>Ep. {algo.convergence}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.32)' }}>Cumulative Reward</div>
-              <div className="text-[18px] font-bold tabular-nums" style={{ color: algo.color }}>{algo.reward}</div>
+              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.28)' }}>Cumulative Reward</div>
+              <div className="text-[17px] font-bold tabular-nums" style={{ color: algo.color }}>{algo.reward}</div>
             </div>
           </div>
         )}
-    </GlassCard>
+      </GlassCard>
+
+      {/* Map Player (col 2–3) */}
+      <MapPlayer algo={algo} mapSize={mapSize} />
+    </div>
   </div>
 )
 
@@ -685,7 +949,7 @@ export default function SimulationDashboard() {
           {/* Screen */}
           <div className="relative w-full flex flex-col overflow-hidden"
             style={{
-              background: 'rgba(6, 11, 26, 0.62)',
+              background: 'rgba(6, 11, 26, 0.45)',
               backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
               borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
@@ -734,11 +998,41 @@ export default function SimulationDashboard() {
                 trafficScale={trafficScale}
                 algorithm1={algorithm1}
               />
-              <div className="flex-1 overflow-y-auto relative" style={{ minHeight: 0 }}>
-                {activePage === 'summary' && <SummaryPage />}
-                {activePage === 'civiq' && <AlgoDetailPage algo={ALGO.civiq} mapSize={mapSize} trafficScale={trafficScale} />}
-                {activePage === 'selfish' && <AlgoDetailPage algo={ALGO.selfish} mapSize={mapSize} trafficScale={trafficScale} />}
-                {activePage === 'qmix' && <AlgoDetailPage algo={ALGO.qmix} mapSize={mapSize} trafficScale={trafficScale} />}
+              {/* Content pane: fixed blob layer + scrollable content on top */}
+              <div className="flex-1 relative" style={{
+                minHeight: 0,
+                overflow: 'hidden',
+                background: 'rgba(4, 9, 22, 0.82)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderLeft: '1px solid rgba(255,255,255,0.07)',
+              }}>
+                {/* Animated colour blobs — fixed behind content */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+                  <div className="absolute rounded-full" style={{
+                    width: 500, height: 500, top: '-120px', left: '-80px',
+                    background: 'radial-gradient(circle at 40% 40%, rgba(6,182,212,0.28) 0%, transparent 70%)',
+                    filter: 'blur(60px)', animation: 'blob1 16s ease-in-out infinite', animationDelay: '-3s',
+                  }} />
+                  <div className="absolute rounded-full" style={{
+                    width: 460, height: 460, bottom: '-100px', right: '-60px',
+                    background: 'radial-gradient(circle at 60% 55%, rgba(139,92,246,0.24) 0%, transparent 70%)',
+                    filter: 'blur(60px)', animation: 'blob2 20s ease-in-out infinite', animationDelay: '-8s',
+                  }} />
+                  <div className="absolute rounded-full" style={{
+                    width: 360, height: 360, top: '35%', left: '50%',
+                    background: 'radial-gradient(circle at 50% 50%, rgba(37,99,235,0.18) 0%, transparent 70%)',
+                    filter: 'blur(50px)', animation: 'blob3 18s ease-in-out infinite', animationDelay: '-12s',
+                  }} />
+                </div>
+
+                {/* Scrollable page content */}
+                <div className="absolute inset-0 overflow-y-auto" style={{ zIndex: 1 }}>
+                  {activePage === 'summary' && <SummaryPage />}
+                  {activePage === 'civiq' && <AlgoDetailPage algo={ALGO.civiq} mapSize={mapSize} trafficScale={trafficScale} />}
+                  {activePage === 'selfish' && <AlgoDetailPage algo={ALGO.selfish} mapSize={mapSize} trafficScale={trafficScale} />}
+                  {activePage === 'qmix' && <AlgoDetailPage algo={ALGO.qmix} mapSize={mapSize} trafficScale={trafficScale} />}
+                </div>
               </div>
             </div>
           </div>
