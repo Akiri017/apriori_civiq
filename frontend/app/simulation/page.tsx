@@ -92,6 +92,35 @@ export interface EpisodeSeries {
   speed:      EpisodePoint[]
 }
 
+// Training curve: cumulative reward per episode across seeds
+export interface TrainingPoint {
+  episode: number
+  reward: number
+  lo: number   // lower CI across seeds
+  hi: number   // upper CI across seeds
+  ma: number   // moving average
+}
+
+// Decision latency per inference step (ms) — plug in profiler output
+export interface LatencyPoint {
+  step: number
+  latency: number
+  ma: number
+}
+
+// CPU utilisation per time step (%) — plug in system monitor output
+export interface CpuPoint {
+  step: number
+  cpu: number
+  ma: number
+}
+
+export interface SystemSeries {
+  training: TrainingPoint[]   // empty for selfish (no training)
+  latency:  LatencyPoint[]
+  cpu:      CpuPoint[]
+}
+
 interface AlgoData {
   id: AlgoKey
   label: string
@@ -117,6 +146,7 @@ interface AlgoData {
   sparklines: KpiSeries
   changes: KpiChanges
   episodes: EpisodeSeries
+  system: SystemSeries
 }
 
 // Generate dummy episode series with noise, trend, and confidence band
@@ -133,12 +163,76 @@ function makeSeries(
     const t = i / (episodes - 1)
     raw.push(start + (end - start) * t + rand() * noiseAmp)
   }
-  const W = 10 // MA window
+  const W = 10
   for (let i = 0; i < episodes; i++) {
     const slice = raw.slice(Math.max(0, i - W + 1), i + 1)
     const ma = slice.reduce((a, b) => a + b, 0) / slice.length
     const noise = rand() * noiseAmp * 0.4
     pts.push({ episode: i + 1, value: +raw[i].toFixed(2), lo: +(raw[i] - band + noise).toFixed(2), hi: +(raw[i] + band + noise).toFixed(2), ma: +ma.toFixed(2) })
+  }
+  return pts
+}
+
+// Training curve: reward from ~start → end, with logistic ease-in (slow start, fast rise, plateau)
+function makeTraining(startR: number, endR: number, band: number, episodes = 200, seed = 1): TrainingPoint[] {
+  let r = seed
+  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff - 0.5 }
+  const W = 10
+  const raw: number[] = []
+  for (let i = 0; i < episodes; i++) {
+    // logistic curve: slow at first, rapid middle, plateau near end
+    const t = i / (episodes - 1)
+    const logistic = 1 / (1 + Math.exp(-10 * (t - 0.35)))
+    raw.push(startR + (endR - startR) * logistic + rand() * (band * 1.4))
+  }
+  const pts: TrainingPoint[] = []
+  for (let i = 0; i < episodes; i++) {
+    const slice = raw.slice(Math.max(0, i - W + 1), i + 1)
+    const ma = slice.reduce((a, b) => a + b, 0) / slice.length
+    const bNoise = rand() * band * 0.3
+    pts.push({ episode: i + 1, reward: +raw[i].toFixed(1), lo: +(raw[i] - band + bNoise).toFixed(1), hi: +(raw[i] + band + bNoise).toFixed(1), ma: +ma.toFixed(1) })
+  }
+  return pts
+}
+
+// Decision latency: starts high (cold), drops and stabilises
+function makeLatency(baseMs: number, peakMs: number, noiseAmp: number, steps = 120, seed = 1): LatencyPoint[] {
+  let r = seed
+  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff - 0.5 }
+  const W = 8
+  const raw: number[] = []
+  for (let i = 0; i < steps; i++) {
+    const t = i / (steps - 1)
+    // exponential decay from peak → base
+    const decay = baseMs + (peakMs - baseMs) * Math.exp(-5 * t)
+    raw.push(decay + rand() * noiseAmp)
+  }
+  const pts: LatencyPoint[] = []
+  for (let i = 0; i < steps; i++) {
+    const slice = raw.slice(Math.max(0, i - W + 1), i + 1)
+    const ma = slice.reduce((a, b) => a + b, 0) / slice.length
+    pts.push({ step: i + 1, latency: +raw[i].toFixed(2), ma: +ma.toFixed(2) })
+  }
+  return pts
+}
+
+// CPU utilization: rises at start, peaks, then stabilises
+function makeCpu(basePercent: number, peakPercent: number, noiseAmp: number, steps = 120, seed = 1): CpuPoint[] {
+  let r = seed
+  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff - 0.5 }
+  const W = 8
+  const raw: number[] = []
+  for (let i = 0; i < steps; i++) {
+    const t = i / (steps - 1)
+    // bell-ish: rises quickly to peak then settles at base
+    const shaped = basePercent + (peakPercent - basePercent) * Math.exp(-4 * Math.pow(t - 0.15, 2)) * (1 - t * 0.4)
+    raw.push(Math.min(100, Math.max(0, shaped + rand() * noiseAmp)))
+  }
+  const pts: CpuPoint[] = []
+  for (let i = 0; i < steps; i++) {
+    const slice = raw.slice(Math.max(0, i - W + 1), i + 1)
+    const ma = slice.reduce((a, b) => a + b, 0) / slice.length
+    pts.push({ step: i + 1, cpu: +raw[i].toFixed(1), ma: +ma.toFixed(1) })
   }
   return pts
 }
@@ -165,6 +259,11 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       throughput:  makeSeries(1380,1875,  38,  28,   200, 3),
       speed:       makeSeries(0.86, 1.24,  0.06, 0.04, 200, 4),
     },
+    system: {
+      training: makeTraining(-200, 1250, 120, 200, 13),
+      latency:  makeLatency(22, 68, 4.5, 120, 14),
+      cpu:      makeCpu(28, 72, 6, 120, 15),
+    },
   },
   qmix: {
     id: 'qmix', label: 'Monolithic QMIX', sublabel: 'Baseline RL', rank: 2,
@@ -187,6 +286,11 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       throughput:  makeSeries(1280, 1720, 45,  35,   200, 7),
       speed:       makeSeries(0.74, 1.11,  0.07, 0.05, 200, 8),
     },
+    system: {
+      training: makeTraining(-180, 980, 140, 200, 16),
+      latency:  makeLatency(18, 52, 3.8, 120, 17),
+      cpu:      makeCpu(22, 58, 5, 120, 18),
+    },
   },
   selfish: {
     id: 'selfish', label: 'Selfish Routing', sublabel: 'Nash Equilibrium', rank: 3,
@@ -208,6 +312,11 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       waitTime:    makeSeries(35,   35,   3.0, 2.2,  200, 10),
       throughput:  makeSeries(1428, 1428, 55,  42,   200, 11),
       speed:       makeSeries(0.93, 0.93, 0.05, 0.04, 200, 12),
+    },
+    system: {
+      training: [],  // Selfish Routing has no training phase
+      latency:  makeLatency(20, 24, 2.5, 120, 19),
+      cpu:      makeCpu(18, 35, 4, 120, 20),
     },
   },
 }
@@ -1124,6 +1233,154 @@ const EpisodeDetailModal = ({ algo, metricKey, onClose }: {
   )
 }
 
+// ─── Analytics Charts ─────────────────────────────────────────────────────────
+
+const CHART_GRID = 'rgba(255,255,255,0.05)'
+const CHART_AXIS  = { fill: 'rgba(255,255,255,0.28)', fontSize: 10 }
+const CHART_AXIS_LINE = { stroke: 'rgba(255,255,255,0.08)' }
+const CHART_TICK_LINE = { stroke: 'rgba(255,255,255,0.08)' }
+
+// Shared tooltip shell
+const ChartTooltip = ({ active, payload, label, xLabel, rows }: {
+  active?: boolean; payload?: any[]; label?: any
+  xLabel: string
+  rows: { key: string; label: string; color: string; unit: string }[]
+}) => {
+  if (!active || !payload?.length) return null
+  const byKey = Object.fromEntries(payload.map((p: any) => [p.dataKey, p.value]))
+  return (
+    <div style={{ background: 'rgba(4,9,22,0.97)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 12px', fontSize: 11 }}>
+      <p style={{ color: 'rgba(255,255,255,0.38)', marginBottom: 4 }}>{xLabel} {label}</p>
+      {rows.map(({ key, label: rl, color, unit }) =>
+        byKey[key] !== undefined
+          ? <p key={key} style={{ color }}>{rl}: <b>{Number(byKey[key]).toFixed(2)}</b> {unit}</p>
+          : null
+      )}
+    </div>
+  )
+}
+
+// 1 — Training Curve
+const TrainingCurveChart = ({ algo }: { algo: AlgoData }) => {
+  const data = algo.system.training
+  if (!data.length) return (
+    <GlassCard className="p-5 flex flex-col gap-2 col-span-3">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Training Curve</span>
+        <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'rgba(248,113,113,0.12)', color: '#F87171', border: '1px solid rgba(248,113,113,0.25)' }}>No training phase</span>
+      </div>
+      <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        Selfish Routing is a rule-based baseline — it requires no training and has no reward curve.
+      </p>
+    </GlassCard>
+  )
+  return (
+    <GlassCard className="p-5 flex flex-col gap-3 col-span-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Training Curve</span>
+          <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
+            Cumulative reward per episode · shaded area = seed confidence band
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {[
+            { color: algo.color, label: 'Mean reward' },
+            { color: 'rgba(255,255,255,0.6)', label: 'Moving avg.', dashed: true },
+          ].map(({ color, label, dashed }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke={color} strokeWidth="2" strokeDasharray={dashed ? '4 2' : undefined} /></svg>
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-3 rounded-sm" style={{ background: algo.color, opacity: 0.18 }} />
+            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Conf. band</span>
+          </div>
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={200}>
+        <ComposedChart data={data} margin={{ top: 4, right: 12, left: 0, bottom: 20 }}>
+          <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+          <XAxis dataKey="episode" tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
+            label={{ value: 'Episode', position: 'insideBottom', offset: -12, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
+            interval={Math.floor(data.length / 8)} />
+          <YAxis tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE} width={52}
+            label={{ value: 'Reward', angle: -90, position: 'insideLeft', offset: 14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }} />
+          <Tooltip content={<ChartTooltip xLabel="Ep." rows={[
+            { key: 'reward', label: 'Reward', color: algo.color, unit: '' },
+            { key: 'ma',     label: 'MA-10',  color: 'rgba(255,255,255,0.65)', unit: '' },
+          ]} />} />
+          <Area type="monotone" dataKey="hi" stroke="none" fill={algo.color} fillOpacity={0.14} dot={false} activeDot={false} legendType="none" isAnimationActive={false} />
+          <Area type="monotone" dataKey="lo" stroke="none" fill="#040916" fillOpacity={1} dot={false} activeDot={false} legendType="none" isAnimationActive={false} />
+          <Line type="monotone" dataKey="reward" stroke={algo.color} strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} strokeOpacity={0.85} isAnimationActive={false} />
+          <Line type="monotone" dataKey="ma" stroke="rgba(255,255,255,0.6)" strokeWidth={2} dot={false} activeDot={false} strokeDasharray="5 3" isAnimationActive={false} />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </GlassCard>
+  )
+}
+
+// 2 — Decision Latency
+const LatencyChart = ({ algo }: { algo: AlgoData }) => (
+  <GlassCard className="p-5 flex flex-col gap-3">
+    <div>
+      <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Decision Latency</span>
+      <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
+        Inference time per step (ms) · ISO 25010 Performance Efficiency
+      </p>
+    </div>
+    <ResponsiveContainer width="100%" height={180}>
+      <ComposedChart data={algo.system.latency} margin={{ top: 4, right: 12, left: 0, bottom: 20 }}>
+        <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+        <XAxis dataKey="step" tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
+          label={{ value: 'Step', position: 'insideBottom', offset: -12, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
+          interval={Math.floor(algo.system.latency.length / 6)} />
+        <YAxis tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE} width={40}
+          label={{ value: 'ms', angle: -90, position: 'insideLeft', offset: 14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }} />
+        <Tooltip content={<ChartTooltip xLabel="Step" rows={[
+          { key: 'latency', label: 'Latency', color: algo.color, unit: 'ms' },
+          { key: 'ma',      label: 'MA-8',    color: 'rgba(255,255,255,0.65)', unit: 'ms' },
+        ]} />} />
+        <Area type="monotone" dataKey="latency" stroke={algo.color} strokeWidth={1.5}
+          fill={algo.color} fillOpacity={0.1} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
+        <Line type="monotone" dataKey="ma" stroke="rgba(255,255,255,0.58)" strokeWidth={1.5}
+          dot={false} activeDot={false} strokeDasharray="5 3" isAnimationActive={false} />
+      </ComposedChart>
+    </ResponsiveContainer>
+  </GlassCard>
+)
+
+// 3 — CPU Utilisation
+const CpuChart = ({ algo }: { algo: AlgoData }) => (
+  <GlassCard className="p-5 flex flex-col gap-3">
+    <div>
+      <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>CPU Utilization</span>
+      <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
+        System CPU (%) over simulation runtime · real-world feasibility
+      </p>
+    </div>
+    <ResponsiveContainer width="100%" height={180}>
+      <ComposedChart data={algo.system.cpu} margin={{ top: 4, right: 12, left: 0, bottom: 20 }}>
+        <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+        <XAxis dataKey="step" tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
+          label={{ value: 'Step', position: 'insideBottom', offset: -12, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
+          interval={Math.floor(algo.system.cpu.length / 6)} />
+        <YAxis tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE} width={40} domain={[0, 100]}
+          label={{ value: '%', angle: -90, position: 'insideLeft', offset: 14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }} />
+        <Tooltip content={<ChartTooltip xLabel="Step" rows={[
+          { key: 'cpu', label: 'CPU', color: algo.color, unit: '%' },
+          { key: 'ma',  label: 'MA-8', color: 'rgba(255,255,255,0.65)', unit: '%' },
+        ]} />} />
+        <Area type="monotone" dataKey="cpu" stroke={algo.color} strokeWidth={1.5}
+          fill={algo.color} fillOpacity={0.12} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
+        <Line type="monotone" dataKey="ma" stroke="rgba(255,255,255,0.58)" strokeWidth={1.5}
+          dot={false} activeDot={false} strokeDasharray="5 3" isAnimationActive={false} />
+      </ComposedChart>
+    </ResponsiveContainer>
+  </GlassCard>
+)
+
 // ─── Algorithm Detail Page ─────────────────────────────────────────────────────
 
 
@@ -1218,6 +1475,22 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
       {/* Map Player (col 2–3) */}
       <MapPlayer algo={algo} mapSize={mapSize} />
     </div>
+
+    {/* Analytics row */}
+    {algo.id === 'selfish' ? (
+      <div className="grid grid-cols-2 gap-4">
+        <LatencyChart algo={algo} />
+        <CpuChart algo={algo} />
+      </div>
+    ) : (
+      <div className="grid grid-cols-5 gap-4">
+        <div className="col-span-3">
+          <TrainingCurveChart algo={algo} />
+        </div>
+        <LatencyChart algo={algo} />
+        <CpuChart algo={algo} />
+      </div>
+    )}
   </div>
   )
 }
