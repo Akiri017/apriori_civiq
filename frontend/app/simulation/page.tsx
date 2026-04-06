@@ -105,13 +105,6 @@ export interface TrainingPoint {
   ma: number   // moving average
 }
 
-// Decision latency per inference step (ms) — plug in profiler output
-export interface LatencyPoint {
-  step: number
-  latency: number
-  ma: number
-}
-
 // CPU utilisation per time step (%) — plug in system monitor output
 export interface CpuPoint {
   step: number
@@ -121,7 +114,6 @@ export interface CpuPoint {
 
 export interface SystemSeries {
   training: TrainingPoint[]   // empty for selfish (no training)
-  latency:  LatencyPoint[]
   cpu:      CpuPoint[]
 }
 
@@ -199,27 +191,6 @@ function makeTraining(startR: number, endR: number, band: number, episodes = 200
   return pts
 }
 
-// Decision latency: starts high (cold), drops and stabilises
-function makeLatency(baseMs: number, peakMs: number, noiseAmp: number, steps = 120, seed = 1): LatencyPoint[] {
-  let r = seed
-  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff - 0.5 }
-  const W = 8
-  const raw: number[] = []
-  for (let i = 0; i < steps; i++) {
-    const t = i / (steps - 1)
-    // exponential decay from peak → base
-    const decay = baseMs + (peakMs - baseMs) * Math.exp(-5 * t)
-    raw.push(decay + rand() * noiseAmp)
-  }
-  const pts: LatencyPoint[] = []
-  for (let i = 0; i < steps; i++) {
-    const slice = raw.slice(Math.max(0, i - W + 1), i + 1)
-    const ma = slice.reduce((a, b) => a + b, 0) / slice.length
-    pts.push({ step: i + 1, latency: +raw[i].toFixed(2), ma: +ma.toFixed(2) })
-  }
-  return pts
-}
-
 // CPU utilization: rises at start, peaks, then stabilises
 function makeCpu(basePercent: number, peakPercent: number, noiseAmp: number, steps = 120, seed = 1): CpuPoint[] {
   let r = seed
@@ -265,7 +236,6 @@ const ALGO: Record<AlgoKey, AlgoData> = {
     },
     system: {
       training: makeTraining(-200, 1250, 120, 200, 13),
-      latency:  makeLatency(22, 68, 4.5, 120, 14),
       cpu:      makeCpu(28, 72, 6, 120, 15),
     },
   },
@@ -292,7 +262,6 @@ const ALGO: Record<AlgoKey, AlgoData> = {
     },
     system: {
       training: makeTraining(-180, 980, 140, 200, 16),
-      latency:  makeLatency(18, 52, 3.8, 120, 17),
       cpu:      makeCpu(22, 58, 5, 120, 18),
     },
   },
@@ -319,7 +288,6 @@ const ALGO: Record<AlgoKey, AlgoData> = {
     },
     system: {
       training: [],  // Selfish Routing has no training phase
-      latency:  makeLatency(20, 24, 2.5, 120, 19),
       cpu:      makeCpu(18, 35, 4, 120, 20),
     },
   },
@@ -532,28 +500,67 @@ function rLabel(i: number) {
   return { x: RC.x + (RR + 22) * Math.cos(a), y: RC.y + (RR + 22) * Math.sin(a) }
 }
 
-const RadarChart = () => (
-  <svg viewBox="0 0 350 350" className="w-full max-w-[320px] mx-auto">
-    {[0.25, 0.5, 0.75, 1].map((r) => (
-      <polygon key={r} points={rPts(Array(7).fill(r))}
-        fill="none" stroke="rgba(255,255,255,0.11)" strokeWidth="1" />
-    ))}
-    {RADAR_AXES.map((_, i) => {
-      const pt = { x: RC.x + RR * Math.cos(-Math.PI / 2 + (2 * Math.PI * i) / RADAR_AXES.length), y: RC.y + RR * Math.sin(-Math.PI / 2 + (2 * Math.PI * i) / RADAR_AXES.length) }
-      return <line key={i} x1={RC.x} y1={RC.y} x2={pt.x} y2={pt.y} stroke="rgba(255,255,255,0.11)" strokeWidth="1" />
-    })}
-    <polygon points={rPts(ALGO.selfish.scores)} fill="rgba(248,113,113,0.12)" stroke="#F87171" strokeWidth="1.5" strokeLinejoin="round" />
-    <polygon points={rPts(ALGO.qmix.scores)} fill="rgba(167,139,250,0.12)" stroke="#A78BFA" strokeWidth="1.5" strokeLinejoin="round" />
-    <polygon points={rPts(ALGO.civiq.scores)} fill="rgba(56,189,248,0.18)" stroke="#38BDF8" strokeWidth="2" strokeLinejoin="round" />
-    {RADAR_AXES.map((label, i) => {
-      const { x, y } = rLabel(i)
-      return (
-        <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle"
-          fontSize="10" fill="rgba(255,255,255,0.45)" fontWeight="500">{label}</text>
-      )
-    })}
-  </svg>
-)
+function RadarTooltip({ axisIdx }: { axisIdx: number }) {
+  const { x: lx, y: ly } = rLabel(axisIdx)
+  const tipW = 108
+  const tipH = 62
+  const tx = lx > RC.x ? Math.min(lx - tipW - 4, 240) : Math.max(lx + 8, 2)
+  const ty = Math.max(8, Math.min(ly - tipH / 2, 350 - tipH - 8))
+  return (
+    <g style={{ pointerEvents: 'none' }}>
+      <rect x={tx} y={ty} width={tipW} height={tipH} rx="6"
+        fill="rgba(8,8,24,0.94)" stroke="rgba(255,255,255,0.14)" strokeWidth="1" />
+      <text x={tx + 8} y={ty + 14} fontSize="9.5" fill="rgba(255,255,255,0.65)"
+        fontWeight="700" textAnchor="start">{RADAR_AXES[axisIdx]}</text>
+      {ALGO_LIST.map((a, ai) => (
+        <g key={a.id}>
+          <circle cx={tx + 9} cy={ty + 26 + ai * 13} r="3.5" fill={a.color} />
+          <text x={tx + 17} y={ty + 30 + ai * 13} fontSize="9" fill="rgba(255,255,255,0.78)" textAnchor="start">
+            {a.sublabel}: {Math.round(a.scores[axisIdx] * 100)}%
+          </text>
+        </g>
+      ))}
+    </g>
+  )
+}
+
+const RadarChart = () => {
+  const [hoveredAxis, setHoveredAxis] = useState<number | null>(null)
+  return (
+    <svg viewBox="0 0 350 350" className="w-full max-w-[320px] mx-auto" style={{ overflow: 'visible' }}>
+      {[0.25, 0.5, 0.75, 1].map((r) => (
+        <polygon key={r} points={rPts(Array(7).fill(r))}
+          fill="none" stroke="rgba(255,255,255,0.11)" strokeWidth="1" />
+      ))}
+      {RADAR_AXES.map((_, i) => {
+        const pt = { x: RC.x + RR * Math.cos(-Math.PI / 2 + (2 * Math.PI * i) / RADAR_AXES.length), y: RC.y + RR * Math.sin(-Math.PI / 2 + (2 * Math.PI * i) / RADAR_AXES.length) }
+        return <line key={i} x1={RC.x} y1={RC.y} x2={pt.x} y2={pt.y}
+          stroke={hoveredAxis === i ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.11)'} strokeWidth="1" />
+      })}
+      <polygon points={rPts(ALGO.selfish.scores)} fill="rgba(248,113,113,0.12)" stroke="#F87171" strokeWidth="1.5" strokeLinejoin="round" />
+      <polygon points={rPts(ALGO.qmix.scores)} fill="rgba(167,139,250,0.12)" stroke="#A78BFA" strokeWidth="1.5" strokeLinejoin="round" />
+      <polygon points={rPts(ALGO.civiq.scores)} fill="rgba(56,189,248,0.18)" stroke="#38BDF8" strokeWidth="2" strokeLinejoin="round" />
+      {RADAR_AXES.map((label, i) => {
+        const { x, y } = rLabel(i)
+        const isHovered = hoveredAxis === i
+        return (
+          <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle"
+            fontSize="10" fill={isHovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)'}
+            fontWeight={isHovered ? '700' : '500'}>{label}</text>
+        )
+      })}
+      {RADAR_AXES.map((_, i) => {
+        const { x, y } = rLabel(i)
+        return (
+          <circle key={i} cx={x} cy={y} r="20" fill="transparent" style={{ cursor: 'pointer' }}
+            onMouseEnter={() => setHoveredAxis(i)}
+            onMouseLeave={() => setHoveredAxis(null)} />
+        )
+      })}
+      {hoveredAxis !== null && <RadarTooltip axisIdx={hoveredAxis} />}
+    </svg>
+  )
+}
 
 // ─── Summary Page ──────────────────────────────────────────────────────────────
 
@@ -572,24 +579,41 @@ const COMPARE_METRICS = [
   { label: 'Compute Time', unit: 'ms', key: 'computeTime' as const, max: 30, lowerBetter: true },
 ]
 
-const SummaryPage = () => (
+const SummaryPage = ({ onNavigate }: { onNavigate: (p: Page) => void }) => (
   <div className="p-6 space-y-5 overflow-y-auto" style={{ height: '100%' }}>
     {/* Header */}
-    <div className="flex items-baseline justify-between">
+    <div className="flex items-center justify-between">
       <div>
         <h2 className="text-xl font-bold" style={{ color: 'rgba(255,255,255,0.9)' }}>Algorithm Comparison</h2>
         <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.38)' }}>
           Aggregate performance across Civiq, Monolithic QMIX, and Selfish Routing
         </p>
+        <div className="flex items-center gap-4 mt-2">
+          {ALGO_LIST.map((a) => (
+            <div key={a.id} className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ background: a.color }} />
+              <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{a.sublabel}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="flex items-center gap-4">
-        {ALGO_LIST.map((a) => (
-          <div key={a.id} className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background: a.color }} />
-            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{a.sublabel}</span>
-          </div>
-        ))}
-      </div>
+      <button
+        disabled
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-bold transition-all duration-200"
+        style={{
+          background: 'linear-gradient(135deg, rgba(6,182,212,0.22) 0%, rgba(99,102,241,0.18) 100%)',
+          border: '1px solid rgba(6,182,212,0.45)',
+          color: '#06B6D4',
+          boxShadow: '0 0 18px rgba(6,182,212,0.18)',
+          cursor: 'not-allowed',
+          opacity: 0.85,
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" />
+        </svg>
+        Compare Side-by-Side
+      </button>
     </div>
 
     {/* Rank cards */}
@@ -604,12 +628,23 @@ const SummaryPage = () => (
                 style={{ background: rankMeta[i].bg, color: rankMeta[i].color }}>
                 {rankMeta[i].label}
               </span>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ background: a.color }} />
-                <span className="text-[11px] font-medium" style={{ color: a.color }}>{a.sublabel}</span>
-              </div>
+              <button
+                onClick={() => onNavigate(a.id)}
+                className="text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all duration-150"
+                style={{ color: a.color, background: a.colorDim, border: `1px solid ${a.border}` }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.75' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+              >
+                View Detail →
+              </button>
             </div>
-            <h3 className="text-[15px] font-bold mb-3" style={{ color: 'rgba(255,255,255,0.9)' }}>{a.label}</h3>
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="text-[15px] font-bold" style={{ color: 'rgba(255,255,255,0.9)' }}>{a.label}</h3>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: a.colorDim, color: a.color, border: `1px solid ${a.border}` }}>
+                {a.sublabel}
+              </span>
+            </div>
             <div className="space-y-2 text-[12px]">
               {[
                 { k: 'Travel Time', v: `${a.travelTime} min` },
@@ -638,7 +673,7 @@ const SummaryPage = () => (
     {/* Radar + Breakdown */}
     <div className="grid grid-cols-5 gap-4">
       <GlassCard className="col-span-2 p-5">
-        <h3 className="text-[13px] font-bold mb-3" style={{ color: 'rgba(255,255,255,0.78)' }}>Performance Radar</h3>
+        <h3 className="text-[13px] font-bold mb-3" style={{ color: 'rgba(255,255,255,0.78)' }}>Performance Profile</h3>
         <RadarChart />
         <div className="flex justify-center gap-5 mt-2">
           {ALGO_LIST.map((a) => (
@@ -1325,37 +1360,7 @@ const TrainingCurveChart = ({ algo }: { algo: AlgoData }) => {
   )
 }
 
-// 2 — Decision Latency
-const LatencyChart = ({ algo }: { algo: AlgoData }) => (
-  <GlassCard className="p-5 flex flex-col gap-3">
-    <div>
-      <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Decision Latency</span>
-      <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
-        Inference time per step (ms) · ISO 25010 Performance Efficiency
-      </p>
-    </div>
-    <ResponsiveContainer width="100%" height={180}>
-      <ComposedChart data={algo.system.latency} margin={{ top: 4, right: 12, left: 0, bottom: 20 }}>
-        <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
-        <XAxis dataKey="step" tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
-          label={{ value: 'Step', position: 'insideBottom', offset: -12, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
-          interval={Math.floor(algo.system.latency.length / 6)} />
-        <YAxis tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE} width={40}
-          label={{ value: 'ms', angle: -90, position: 'insideLeft', offset: 14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }} />
-        <Tooltip content={<ChartTooltip xLabel="Step" rows={[
-          { key: 'latency', label: 'Latency', color: algo.color, unit: 'ms' },
-          { key: 'ma',      label: 'MA-8',    color: 'rgba(255,255,255,0.65)', unit: 'ms' },
-        ]} />} />
-        <Area type="monotone" dataKey="latency" stroke={algo.color} strokeWidth={1.5}
-          fill={algo.color} fillOpacity={0.1} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
-        <Line type="monotone" dataKey="ma" stroke="rgba(255,255,255,0.58)" strokeWidth={1.5}
-          dot={false} activeDot={false} strokeDasharray="5 3" isAnimationActive={false} />
-      </ComposedChart>
-    </ResponsiveContainer>
-  </GlassCard>
-)
-
-// 3 — CPU Utilisation
+// 2 — CPU Utilisation
 const CpuChart = ({ algo }: { algo: AlgoData }) => (
   <GlassCard className="p-5 flex flex-col gap-3">
     <div>
@@ -1482,16 +1487,14 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
 
     {/* Analytics row */}
     {algo.id === 'selfish' ? (
-      <div className="grid grid-cols-2 gap-4">
-        <LatencyChart algo={algo} />
+      <div className="grid grid-cols-1 gap-4">
         <CpuChart algo={algo} />
       </div>
     ) : (
       <div className="grid grid-cols-5 gap-4">
-        <div className="col-span-3">
+        <div className="col-span-4">
           <TrainingCurveChart algo={algo} />
         </div>
-        <LatencyChart algo={algo} />
         <CpuChart algo={algo} />
       </div>
     )}
@@ -1731,7 +1734,7 @@ function SimulationDashboardContent() {
 
                 {/* Scrollable page content */}
                 <div className="absolute inset-0 overflow-y-auto" style={{ zIndex: 1 }}>
-                  {activePage === 'summary' && <SummaryPage />}
+                  {activePage === 'summary' && <SummaryPage onNavigate={setActivePage} />}
                   {activePage === 'civiq' && <AlgoDetailPage algo={ALGO.civiq} mapSize={mapSize} trafficScale={trafficScale} />}
                   {activePage === 'selfish' && <AlgoDetailPage algo={ALGO.selfish} mapSize={mapSize} trafficScale={trafficScale} />}
                   {activePage === 'qmix' && <AlgoDetailPage algo={ALGO.qmix} mapSize={mapSize} trafficScale={trafficScale} />}
