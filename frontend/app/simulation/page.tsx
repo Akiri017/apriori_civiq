@@ -147,7 +147,7 @@ const ALGO: Record<AlgoKey, AlgoData> = {
   civiq: {
     id: 'civiq', label: 'Hierarchical QMIX', sublabel: 'Civiq', rank: 1,
     color: '#38BDF8', colorDim: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.3)',
-    travelTime: 4.2, waitTime: 18.5, throughput: 1875, speed: 45.2,
+    travelTime: 4.2, waitTime: 18.5, throughput: 1875, speed: 1.24,
     co2: 142, fuel: 23, computeTime: 22.35, convergence: 150, reward: 1250, efficiency: 88,
     description: 'Civiq employs a hierarchical two-tier coordination mechanism where a global orchestrator assigns zone-level routing goals, while local agents optimize intersection-level decisions using QMIX. This architecture enables scalable, cooperative traffic management that generalizes across varying network topologies and traffic densities.',
     strengths: ['Lowest travel time across all scenarios', 'Best emission reduction (37% vs baseline)', 'Superior network throughput coordination', 'Scalable to larger road networks'],
@@ -156,20 +156,20 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       travelTime:  [8.5, 7.8, 7.1, 6.4, 5.9, 5.3, 4.9, 4.6, 4.4, 4.2],
       waitTime:    [36, 32, 29, 26, 24, 22, 21, 20, 19, 18.5],
       throughput:  [1380, 1480, 1570, 1650, 1710, 1760, 1810, 1840, 1862, 1875],
-      speed:       [27, 31, 35, 38, 40, 42, 43, 44, 44.8, 45.2],
+      speed:       [0.86, 0.92, 0.97, 1.02, 1.08, 1.12, 1.16, 1.19, 1.22, 1.24],
     },
-    changes: { travelTime: -50.6, waitTime: -48.6, throughput: 35.9, speed: 67.4 },
+    changes: { travelTime: -50.6, waitTime: -48.6, throughput: 35.9, speed: 44.2 },
     episodes: {
       travelTime:  makeSeries(8.5, 4.2,   0.5, 0.35, 200, 1),
       waitTime:    makeSeries(36,  18.5,  1.8, 1.2,  200, 2),
       throughput:  makeSeries(1380,1875,  38,  28,   200, 3),
-      speed:       makeSeries(27,  45.2,  1.8, 1.3,  200, 4),
+      speed:       makeSeries(0.86, 1.24,  0.06, 0.04, 200, 4),
     },
   },
   qmix: {
     id: 'qmix', label: 'Monolithic QMIX', sublabel: 'Baseline RL', rank: 2,
     color: '#A78BFA', colorDim: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.3)',
-    travelTime: 5.8, waitTime: 26.3, throughput: 1720, speed: 38.5,
+    travelTime: 5.8, waitTime: 26.3, throughput: 1720, speed: 1.11,
     co2: 178, fuel: 31, computeTime: 18.20, convergence: 200, reward: 980, efficiency: 71,
     description: 'Monolithic QMIX applies centralized multi-agent reinforcement learning where all agents share a joint action-value function. While effective at coordination, the monolithic architecture faces scalability limitations as network size grows, requiring more training episodes and compute to converge on larger topologies.',
     strengths: ['Fastest compute time per decision step', 'Good coordination at small scale', 'Solid baseline RL performance', 'Well-established QMIX framework'],
@@ -178,20 +178,20 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       travelTime:  [10.2, 9.5, 8.9, 8.3, 7.8, 7.3, 6.9, 6.5, 6.1, 5.8],
       waitTime:    [42, 39, 36, 34, 32, 30, 29, 28, 27, 26.3],
       throughput:  [1280, 1360, 1430, 1500, 1560, 1610, 1650, 1685, 1705, 1720],
-      speed:       [23, 26, 29, 32, 34, 36, 37, 38, 38.3, 38.5],
+      speed:       [0.74, 0.80, 0.85, 0.89, 0.94, 0.98, 1.01, 1.05, 1.09, 1.11],
     },
-    changes: { travelTime: -43.1, waitTime: -37.4, throughput: 34.4, speed: 67.4 },
+    changes: { travelTime: -43.1, waitTime: -37.4, throughput: 34.4, speed: 33.7 },
     episodes: {
       travelTime:  makeSeries(10.2, 5.8,  0.7, 0.5,  200, 5),
       waitTime:    makeSeries(42,   26.3, 2.2, 1.7,  200, 6),
       throughput:  makeSeries(1280, 1720, 45,  35,   200, 7),
-      speed:       makeSeries(23,   38.5, 2.1, 1.6,  200, 8),
+      speed:       makeSeries(0.74, 1.11,  0.07, 0.05, 200, 8),
     },
   },
   selfish: {
     id: 'selfish', label: 'Selfish Routing', sublabel: 'Nash Equilibrium', rank: 3,
     color: '#F87171', colorDim: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.3)',
-    travelTime: 8.1, waitTime: 35.0, throughput: 1428, speed: 28.3,
+    travelTime: 8.1, waitTime: 35.0, throughput: 1428, speed: 0.93,
     co2: 235, fuel: 42, computeTime: 20.45, convergence: null, reward: null, efficiency: 48,
     description: 'Selfish Routing models each vehicle independently optimizing its own route via shortest-path algorithms, representing the Nash Equilibrium state of the network. Without coordination, vehicles converge on popular routes causing Braess\'s Paradox — where adding road capacity can paradoxically worsen network-wide performance.',
     strengths: ['No training or setup required', 'Simple and fully interpretable', 'Establishes the Price of Anarchy baseline', 'Handles novel edge cases naturally'],
@@ -200,14 +200,14 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       travelTime:  [7.9, 8.4, 7.7, 8.5, 8.0, 8.6, 7.8, 8.3, 8.0, 8.1],
       waitTime:    [34, 37, 33, 38, 35, 37, 34, 36, 35, 35],
       throughput:  [1460, 1435, 1455, 1420, 1445, 1415, 1440, 1425, 1432, 1428],
-      speed:       [29.1, 27.5, 29.3, 27.8, 28.6, 27.9, 28.5, 28.0, 28.4, 28.3],
+      speed:       [0.95, 0.91, 0.97, 0.92, 0.94, 0.90, 0.95, 0.92, 0.94, 0.93],
     },
-    changes: { travelTime: 2.5, waitTime: 2.9, throughput: -2.2, speed: -2.7 },
+    changes: { travelTime: 2.5, waitTime: 2.9, throughput: -2.2, speed: -2.1 },
     episodes: {
       travelTime:  makeSeries(8.1,  8.1,  0.9, 0.6,  200, 9),
       waitTime:    makeSeries(35,   35,   3.0, 2.2,  200, 10),
       throughput:  makeSeries(1428, 1428, 55,  42,   200, 11),
-      speed:       makeSeries(28.3, 28.3, 2.0, 1.5,  200, 12),
+      speed:       makeSeries(0.93, 0.93, 0.05, 0.04, 200, 12),
     },
   },
 }
@@ -268,17 +268,17 @@ const SparkLine = ({ data, color }: { data: number[]; color: string }) => {
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
-const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, change, lowerBetter, sparkData, onClick }: {
+const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, change, lowerBetter, sparkData, onClick, description, descriptionSide = 'right' }: {
   label: string; abbr?: string; value: string | number; unit: string
   color: string; colorDim?: string; borderColor?: string
-  change?: number; lowerBetter?: boolean; sparkData?: number[]; onClick?: () => void
+  change?: number; lowerBetter?: boolean; sparkData?: number[]; onClick?: () => void; description?: string; descriptionSide?: 'left' | 'right'
 }) => {
   // Green = good outcome, regardless of direction
   const isGood = change === undefined ? true : lowerBetter ? change <= 0 : change >= 0
   const changeColor = isGood ? '#4ADE80' : '#F87171'
   const changeArrow = (change ?? 0) >= 0 ? '▲' : '▼'
   return (
-    <GlassCard className="p-4 flex flex-col gap-2 transition-all duration-200"
+    <GlassCard className="group relative z-0 hover:z-30 p-4 flex flex-col gap-2 transition-all duration-200"
       onClick={onClick}
       style={{
         background: colorDim
@@ -288,24 +288,73 @@ const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, chang
         cursor: onClick ? 'pointer' : 'default',
       }}>
       {/* Title */}
-      <div className="flex items-center justify-between gap-1.5">
+      <div className="flex items-start justify-between gap-1.5">
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] font-semibold uppercase tracking-wider leading-none"
             style={{ color: 'rgba(255,255,255,0.5)' }}>
             {label}{abbr ? ` (${abbr})` : ''}
           </span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)"
-            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
+          {description && (
+            <div
+              className="group/info relative z-20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="w-[18px] h-[18px] rounded-full flex items-center justify-center"
+                style={{
+                  background: 'rgba(6,182,212,0.2)',
+                  border: '1px solid rgba(6,182,212,0.65)',
+                  color: 'rgba(217,249,255,0.95)',
+                  boxShadow: '0 0 0 1px rgba(0,0,0,0.2) inset',
+                }}
+              >
+                <span className="text-[10px] font-bold leading-none">!</span>
+              </div>
+              <div
+                className="pointer-events-none absolute top-[calc(100%+8px)] w-[280px] rounded-lg px-3 py-2 text-[10px] leading-relaxed opacity-0 translate-y-1 transition-all duration-150 group-hover/info:opacity-100 group-hover/info:translate-y-0"
+                style={
+                  descriptionSide === 'left'
+                    ? {
+                        right: 0,
+                        background: 'rgba(4,9,22,0.97)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        color: 'rgba(255,255,255,0.88)',
+                        boxShadow: '0 12px 24px rgba(0,0,0,0.45)',
+                        zIndex: 90,
+                      }
+                    : {
+                      left: 0,
+                        background: 'rgba(4,9,22,0.97)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        color: 'rgba(255,255,255,0.88)',
+                        boxShadow: '0 12px 24px rgba(0,0,0,0.45)',
+                        zIndex: 90,
+                      }
+                }
+              >
+                {description}
+              </div>
+            </div>
+          )}
         </div>
-        {onClick && (
-          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded"
-            style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.28)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            View trend ↗
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {onClick && (
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded transition-colors duration-150"
+              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.28)', border: '1px solid rgba(255,255,255,0.08)' }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(56,189,248,0.18)'
+                ;(e.currentTarget as HTMLElement).style.color = 'rgba(186,230,253,0.95)'
+                ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(56,189,248,0.55)'
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'
+                ;(e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.28)'
+                ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'
+              }}>
+              View detail
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Value + sparkline row */}
@@ -326,6 +375,7 @@ const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, chang
         </div>
         {sparkData && <SparkLine data={sparkData} color={color} />}
       </div>
+
     </GlassCard>
   )
 }
@@ -404,7 +454,7 @@ const COMPARE_METRICS = [
   { label: 'Avg. Travel Time', unit: 'min', key: 'travelTime' as const, max: 10, lowerBetter: true },
   { label: 'Avg. Wait Time', unit: 'sec', key: 'waitTime' as const, max: 40, lowerBetter: true },
   { label: 'Throughput', unit: 'veh/hr', key: 'throughput' as const, max: 2000, lowerBetter: false },
-  { label: 'Avg. Speed', unit: 'km/h', key: 'speed' as const, max: 60, lowerBetter: false },
+  { label: 'Real-time Factor', unit: 'x', key: 'speed' as const, max: 2, lowerBetter: false },
   { label: 'CO₂ Emissions', unit: 'g/km', key: 'co2' as const, max: 280, lowerBetter: true },
   { label: 'Compute Time', unit: 'ms', key: 'computeTime' as const, max: 30, lowerBetter: true },
 ]
@@ -546,18 +596,45 @@ const SummaryPage = () => (
 // Wraps react-gauge-chart. To plug in real data, pass the live `value` and
 // `max` from your API response — the `percent` is computed here automatically.
 
-const GaugeChart = ({ value, max, label, unit, accentColor }: {
+const GaugeChart = ({ value, max, label, unit, accentColor, description }: {
   value: number   // current reading (e.g. 142 g/km) — replace with API value
   max: number     // scale ceiling (e.g. 300) — adjust to match data range
   label: string
   unit: string
   accentColor: string
+  description?: string
 }) => {
   const percent = Math.min(1, Math.max(0, value / max))
 
   return (
-    <GlassCard className="flex-1 flex flex-col items-center justify-center py-2 px-2 gap-0"
+    <GlassCard className="group relative z-0 hover:z-20 flex-1 flex flex-col items-center justify-center py-2 px-2 gap-1"
       style={{ background: 'rgba(255,255,255,0.045)', minWidth: 0 }}>
+      {description && (
+        <div className="group/info absolute top-2 right-2 z-20">
+          <div
+            className="w-5 h-5 rounded-full flex items-center justify-center"
+            style={{
+              background: 'rgba(6,182,212,0.2)',
+              border: '1px solid rgba(6,182,212,0.65)',
+              color: 'rgba(217,249,255,0.95)',
+              boxShadow: '0 0 0 1px rgba(0,0,0,0.2) inset',
+            }}
+          >
+            <span className="text-[11px] font-bold leading-none">!</span>
+          </div>
+          <div className="pointer-events-none absolute right-0 top-[calc(100%+8px)] w-[280px] rounded-lg px-3 py-2 text-[10px] leading-relaxed opacity-0 translate-y-1 transition-all duration-150 group-hover/info:opacity-100 group-hover/info:translate-y-0"
+            style={{
+              background: 'rgba(4,9,22,0.97)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.88)',
+              boxShadow: '0 12px 24px rgba(0,0,0,0.45)',
+              zIndex: 85,
+            }}>
+            {description}
+          </div>
+        </div>
+      )}
+
       <GaugeComponent
         id={`gauge-${label.replace(/\W/g, '')}`}
         percent={percent}
@@ -569,15 +646,15 @@ const GaugeChart = ({ value, max, label, unit, accentColor }: {
         needleBaseColor={accentColor}
         animate={false}
         hideText
-        style={{ width: '100%', maxWidth: '170px' }}
+        style={{ width: '100%', maxWidth: '140px' }}
       />
       {/* Value + unit centred below arc */}
-      <div className="flex flex-col items-center -mt-3">
-        <span className="text-[24px] font-extrabold tabular-nums leading-none" style={{ color: '#ffffff' }}>
+      <div className="flex flex-col items-center mt-0.5">
+        <span className="text-[20px] font-extrabold tabular-nums leading-none" style={{ color: '#ffffff' }}>
           {value}
         </span>
-        <span className="text-[11px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>{unit}</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider mt-1.5 text-center"
+        <span className="text-[10px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>{unit}</span>
+        <span className="text-[9px] font-bold uppercase tracking-wider mt-1.5 text-center"
           style={{ color: 'rgba(255,255,255,0.65)' }}>{label}</span>
       </div>
     </GlassCard>
@@ -834,9 +911,23 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
       </div>
 
       {/* Emission gauges — flex-1 so they fill remaining height naturally */}
-      <div className="flex gap-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-        <GaugeChart value={algo.co2}  max={300} label="Avg CO₂ Emissions"   unit="g/km"    accentColor={algo.color} />
-        <GaugeChart value={algo.fuel} max={55}  label="Avg Fuel Consumption" unit="L/100km" accentColor={algo.color} />
+      <div className="flex gap-3 pt-5 mt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        <GaugeChart
+          value={algo.co2}
+          max={300}
+          label="Avg CO₂ Emissions"
+          unit="g/km"
+          accentColor={algo.color}
+          description="The mean carbon dioxide output per vehicle during the simulation, as measured by SUMO's emissions model. Lower values reflect more efficient routing."
+        />
+        <GaugeChart
+          value={algo.fuel}
+          max={55}
+          label="Avg Fuel Consumption"
+          unit="L/100km"
+          accentColor={algo.color}
+          description="The mean fuel used per vehicle throughout the simulation, as calculated by SUMO. Reflects the environmental cost of routing behavior."
+        />
       </div>
     </GlassCard>
   )
@@ -894,7 +985,7 @@ const KPI_META: Record<EpisodeMetricKey, { label: string; abbr: string; unit: st
   travelTime: { label: 'Avg. Travel Time', abbr: 'ATT', unit: 'min' },
   waitTime:   { label: 'Avg. Wait Time',   abbr: 'AWT', unit: 'sec' },
   throughput: { label: 'Throughput',        abbr: 'TPT', unit: 'veh/hr' },
-  speed:      { label: 'Avg. Speed',        abbr: 'SPD', unit: 'km/h' },
+  speed:      { label: 'Real-time Factor',  abbr: 'RTF', unit: 'x' },
 }
 
 const EpisodeDetailModal = ({ algo, metricKey, onClose }: {
@@ -1078,19 +1169,24 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
       <KpiCard label="Avg. Travel Time" abbr="ATT" value={algo.travelTime} unit="min"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
         change={algo.changes.travelTime} lowerBetter sparkData={algo.sparklines.travelTime}
-        onClick={() => setOpenModal('travelTime')} />
+        onClick={() => setOpenModal('travelTime')}
+        description="The mean time it takes for a vehicle to complete its route from entry to exit, across all vehicles in the simulation." />
       <KpiCard label="Avg. Wait Time" abbr="AWT" value={algo.waitTime} unit="sec"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
         change={algo.changes.waitTime} lowerBetter sparkData={algo.sparklines.waitTime}
-        onClick={() => setOpenModal('waitTime')} />
+        onClick={() => setOpenModal('waitTime')}
+        description="The mean time vehicles spent fully stopped in traffic. High values indicate congestion or poor routing decisions." />
       <KpiCard label="Throughput" abbr="TPT" value={algo.throughput.toLocaleString()} unit="veh/hr"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
         change={algo.changes.throughput} sparkData={algo.sparklines.throughput}
-        onClick={() => setOpenModal('throughput')} />
-      <KpiCard label="Avg. Speed" abbr="SPD" value={algo.speed} unit="km/h"
+        onClick={() => setOpenModal('throughput')}
+        description="The number of vehicles that successfully completed their routes per minute. Higher values indicate better overall traffic flow." />
+      <KpiCard label="Real-time Factor" abbr="RTF" value={algo.speed.toFixed(2)} unit="x"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
         change={algo.changes.speed} sparkData={algo.sparklines.speed}
-        onClick={() => setOpenModal('speed')} />
+        onClick={() => setOpenModal('speed')}
+        descriptionSide="left"
+        description="The ratio of simulation time to actual wall-clock time. A value of 1.0 means the simulation runs in real time; higher values indicate faster-than-real-time execution." />
     </div>
 
     {/* Charts row: left column stack + Map Player */}
@@ -1318,33 +1414,6 @@ function SimulationDashboardContent() {
 
             {/* Status bar */}
             <StatusBar />
-
-            {/* Breadcrumb / context bar */}
-            <div className="flex items-center gap-2 px-6 py-2 flex-shrink-0"
-              style={{ background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.28)' }}>Simulation</span>
-              <span style={{ color: 'rgba(255,255,255,0.15)' }}>›</span>
-              <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.48)' }}>
-                {MAP_LABELS[mapSize] || mapSize}
-              </span>
-              <span style={{ color: 'rgba(255,255,255,0.15)' }}>›</span>
-              <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.48)' }}>
-                {TRAFFIC_LABELS[trafficScale] || trafficScale}
-              </span>
-              <div className="ml-auto">
-                <button onClick={() => router.push('/')}
-                  className="text-[11px] flex items-center gap-1.5 transition-colors duration-200"
-                  style={{ color: 'rgba(255,255,255,0.28)' }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.62)')}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.28)')}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7" />
-                  </svg>
-                  Back to Home
-                </button>
-              </div>
-            </div>
 
             {/* Body: Sidebar + Content */}
             <div className="flex overflow-hidden" style={{ flex: 1, minHeight: 0 }}>
