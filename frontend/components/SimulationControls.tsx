@@ -205,7 +205,7 @@ export const SimulationControls = ({
     <div
       ref={containerRef}
       className="w-full transition-all duration-200"
-      style={{ paddingBottom: vertical ? 0 : openDropdown ? '220px' : '0px' }}
+      style={{ paddingBottom: openDropdown ? '220px' : '0px' }}
     >
       {/* Header */}
       {!hideHeader && (

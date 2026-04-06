@@ -2,8 +2,12 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { SimulationControls } from '@/components/SimulationControls'
+
+// react-gauge-chart uses D3 and must be client-only (no SSR)
+const GaugeComponent = dynamic(() => import('react-gauge-chart'), { ssr: false })
 
 // ─── Status Bar (identical to landing page) ───────────────────────────────────
 
@@ -201,16 +205,17 @@ const SparkLine = ({ data, color }: { data: number[]; color: string }) => {
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
-const KpiCard = ({ label, abbr, value, unit, sub, color, colorDim, borderColor, change, sparkData }: {
+const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, change, lowerBetter, sparkData }: {
   label: string; abbr?: string; value: string | number; unit: string
-  sub?: string; color: string; colorDim?: string; borderColor?: string
-  change?: number; sparkData?: number[]
+  color: string; colorDim?: string; borderColor?: string
+  change?: number; lowerBetter?: boolean; sparkData?: number[]
 }) => {
-  const isPos = (change ?? 0) >= 0
-  const changeColor = isPos ? '#4ADE80' : '#F87171'
-  const changeArrow = isPos ? '▲' : '▼'
+  // Green = good outcome, regardless of direction
+  const isGood = change === undefined ? true : lowerBetter ? change <= 0 : change >= 0
+  const changeColor = isGood ? '#4ADE80' : '#F87171'
+  const changeArrow = (change ?? 0) >= 0 ? '▲' : '▼'
   return (
-    <GlassCard className="p-4 flex flex-col gap-2.5 transition-all duration-200"
+    <GlassCard className="p-4 flex flex-col gap-2 transition-all duration-200"
       style={{
         background: colorDim
           ? `linear-gradient(145deg, ${colorDim.replace('0.12', '0.10')} 0%, rgba(255,255,255,0.03) 100%)`
@@ -230,20 +235,21 @@ const KpiCard = ({ label, abbr, value, unit, sub, color, colorDim, borderColor, 
         </svg>
       </div>
 
-      {/* Value row + sparkline */}
+      {/* Value + sparkline row */}
       <div className="flex items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-baseline gap-1.5 flex-wrap">
+        <div className="flex flex-col gap-0.5">
+          {/* Value + unit */}
+          <div className="flex items-baseline gap-1.5">
             <span className="text-[26px] font-bold tabular-nums leading-none" style={{ color }}>{value}</span>
             <span className="text-[12px] font-medium" style={{ color: 'rgba(255,255,255,0.38)' }}>{unit}</span>
-            {change !== undefined && (
-              <span className="text-[11px] font-bold tabular-nums"
-                style={{ color: changeColor }}>
-                {changeArrow} {Math.abs(change).toFixed(1)}%
-              </span>
-            )}
           </div>
-          {sub && <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.26)' }}>{sub}</span>}
+          {/* Change badge below value */}
+          {change !== undefined && (
+            <span className="text-[11px] font-bold tabular-nums"
+              style={{ color: changeColor }}>
+              {changeArrow} {Math.abs(change).toFixed(1)}%
+            </span>
+          )}
         </div>
         {sparkData && <SparkLine data={sparkData} color={color} />}
       </div>
@@ -463,6 +469,48 @@ const SummaryPage = () => (
   </div>
 )
 
+// ─── Gauge Chart ──────────────────────────────────────────────────────────────
+// Wraps react-gauge-chart. To plug in real data, pass the live `value` and
+// `max` from your API response — the `percent` is computed here automatically.
+
+const GaugeChart = ({ value, max, label, unit, accentColor }: {
+  value: number   // current reading (e.g. 142 g/km) — replace with API value
+  max: number     // scale ceiling (e.g. 300) — adjust to match data range
+  label: string
+  unit: string
+  accentColor: string
+}) => {
+  const percent = Math.min(1, Math.max(0, value / max))
+
+  return (
+    <GlassCard className="flex-1 flex flex-col items-center justify-center py-2 px-2 gap-0"
+      style={{ background: 'rgba(255,255,255,0.045)', minWidth: 0 }}>
+      <GaugeComponent
+        id={`gauge-${label.replace(/\W/g, '')}`}
+        percent={percent}
+        nrOfLevels={3}
+        colors={['#22C55E', '#EAB308', '#EF4444']}
+        arcWidth={0.25}
+        arcPadding={0.03}
+        needleColor={accentColor}
+        needleBaseColor={accentColor}
+        animate={false}
+        hideText
+        style={{ width: '100%', maxWidth: '170px' }}
+      />
+      {/* Value + unit centred below arc */}
+      <div className="flex flex-col items-center -mt-3">
+        <span className="text-[22px] font-bold tabular-nums leading-none" style={{ color: 'white' }}>
+          {value}
+        </span>
+        <span className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{unit}</span>
+        <span className="text-[9px] font-semibold uppercase tracking-wider mt-1.5 text-center"
+          style={{ color: 'rgba(255,255,255,0.38)' }}>{label}</span>
+      </div>
+    </GlassCard>
+  )
+}
+
 // ─── Map Player ───────────────────────────────────────────────────────────────
 
 const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
@@ -515,10 +563,14 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
       // Keep the point under the cursor fixed
-      const newPanX = mx - (mx - panRef.current.x) * (newZoom / zoomRef.current)
-      const newPanY = my - (my - panRef.current.y) * (newZoom / zoomRef.current)
+      const rawX = mx - (mx - panRef.current.x) * (newZoom / zoomRef.current)
+      const rawY = my - (my - panRef.current.y) * (newZoom / zoomRef.current)
+      const { width, height } = rect
       setZoom(newZoom)
-      setPan({ x: newPanX, y: newPanY })
+      setPan({
+        x: Math.min(0, Math.max(rawX, width  * (1 - newZoom))),
+        y: Math.min(0, Math.max(rawY, height * (1 - newZoom))),
+      })
     }
     el.addEventListener('wheel', handler, { passive: false })
     return () => el.removeEventListener('wheel', handler)
@@ -530,12 +582,23 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
     panOrigin.current = { ...panRef.current }
     e.preventDefault()
   }
+  const clampPan = (x: number, y: number, z: number) => {
+    const el = containerRef.current
+    if (!el) return { x, y }
+    const { width, height } = el.getBoundingClientRect()
+    return {
+      x: Math.min(0, Math.max(x, width  * (1 - z))),
+      y: Math.min(0, Math.max(y, height * (1 - z))),
+    }
+  }
+
   const onMouseMove = (e: React.MouseEvent) => {
     if (!dragging.current) return
-    setPan({
+    const raw = {
       x: panOrigin.current.x + (e.clientX - dragOrigin.current.x),
       y: panOrigin.current.y + (e.clientY - dragOrigin.current.y),
-    })
+    }
+    setPan(clampPan(raw.x, raw.y, zoomRef.current))
   }
   const stopDrag = () => { dragging.current = false }
 
@@ -696,105 +759,59 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
           ))}
         </div>
       </div>
+
+      {/* Emission gauges — flex-1 so they fill remaining height naturally */}
+      <div className="flex gap-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        <GaugeChart value={algo.co2}  max={300} label="Avg CO₂ Emissions"   unit="g/km"    accentColor={algo.color} />
+        <GaugeChart value={algo.fuel} max={55}  label="Avg Fuel Consumption" unit="L/100km" accentColor={algo.color} />
+      </div>
     </GlassCard>
   )
 }
 
 // ─── Congestion Heatmap ───────────────────────────────────────────────────────
-// Dummy intensity grids (0 = free-flow, 1 = gridlock).
-// Replace with real heatmap data from the API when backend is connected.
-const HEATMAP_DATA: Record<AlgoKey, number[][]> = {
-  civiq: [
-    [0.14, 0.20, 0.17, 0.22, 0.15],
-    [0.24, 0.33, 0.38, 0.30, 0.26],
-    [0.20, 0.35, 0.40, 0.32, 0.22],
-    [0.16, 0.22, 0.26, 0.20, 0.16],
-  ],
-  qmix: [
-    [0.28, 0.38, 0.34, 0.42, 0.30],
-    [0.44, 0.60, 0.66, 0.56, 0.46],
-    [0.38, 0.56, 0.62, 0.52, 0.40],
-    [0.30, 0.42, 0.46, 0.38, 0.32],
-  ],
-  selfish: [
-    [0.50, 0.62, 0.56, 0.68, 0.52],
-    [0.70, 0.84, 0.90, 0.80, 0.72],
-    [0.62, 0.78, 0.86, 0.74, 0.64],
-    [0.52, 0.64, 0.70, 0.60, 0.54],
-  ],
+// Maps each algo to its representative heatmap image.
+// civiq / qmix (better performing) → heatmap_low  |  selfish → heatmap_high
+// Replace src values with real per-run images when backend is connected.
+const HEATMAP_IMG: Record<AlgoKey, string> = {
+  civiq:   '/heatmap_output/bgc_full_intersection_based/heatmap_low.png',
+  qmix:    '/heatmap_output/bgc_full_intersection_based/heatmap_low.png',
+  selfish: '/heatmap_output/bgc_full_intersection_based/heatmap_high.png',
 }
 
-function heatColor(v: number): string {
-  // 0 → green  0.5 → yellow  1 → red
-  const stops = [
-    [34,  197, 94],   // #22C55E green
-    [234, 179, 8],    // #EAB308 yellow
-    [239, 68,  68],   // #EF4444 red
-  ]
-  const t = Math.max(0, Math.min(1, v)) * (stops.length - 1)
-  const i = Math.min(Math.floor(t), stops.length - 2)
-  const f = t - i
-  const [r1,g1,b1] = stops[i], [r2,g2,b2] = stops[i+1]
-  return `rgb(${Math.round(r1+(r2-r1)*f)},${Math.round(g1+(g2-g1)*f)},${Math.round(b1+(b2-b1)*f)})`
-}
-
-const CongestionHeatmap = ({ algo }: { algo: AlgoData }) => {
-  const grid = HEATMAP_DATA[algo.id]
-  const COLS = 5, ROWS = 4
-  const OX = 28, OY = 20, SX = 56, SY = 46
-  const W = OX * 2 + (COLS - 1) * SX   // 280
-  const H = OY * 2 + (ROWS - 1) * SY   // 178
-  const iX = (c: number) => OX + c * SX
-  const iY = (r: number) => OY + r * SY
-  const segColor = (r1: number, c1: number, r2: number, c2: number) =>
-    heatColor((grid[r1][c1] + grid[r2][c2]) / 2)
-
-  return (
-    <GlassCard className="p-4 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Congestion Heatmap</h3>
-        <span className="text-[9px] italic" style={{ color: 'rgba(255,255,255,0.2)' }}>dummy data</span>
-      </div>
-
-      {/* Map */}
-      <div className="rounded-xl overflow-hidden relative"
-        style={{ background: 'rgba(3,7,18,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
-          {/* Road bodies coloured by congestion */}
-          {Array.from({ length: ROWS }, (_, r) =>
-            Array.from({ length: COLS - 1 }, (_, c) => (
-              <line key={`h${r}-${c}`} x1={iX(c)} y1={iY(r)} x2={iX(c+1)} y2={iY(r)}
-                stroke={segColor(r, c, r, c+1)} strokeWidth="9" strokeLinecap="square" strokeOpacity="0.85" />
-            ))
-          )}
-          {Array.from({ length: COLS }, (_, c) =>
-            Array.from({ length: ROWS - 1 }, (_, r) => (
-              <line key={`v${c}-${r}`} x1={iX(c)} y1={iY(r)} x2={iX(c)} y2={iY(r+1)}
-                stroke={segColor(r, c, r+1, c)} strokeWidth="9" strokeLinecap="square" strokeOpacity="0.85" />
-            ))
-          )}
-          {/* Intersection dots */}
-          {Array.from({ length: ROWS }, (_, r) =>
-            Array.from({ length: COLS }, (_, c) => (
-              <circle key={`i${c}-${r}`} cx={iX(c)} cy={iY(r)} r="5"
-                fill={heatColor(grid[r][c])} stroke="rgba(0,0,0,0.4)" strokeWidth="1" />
-            ))
-          )}
-        </svg>
-      </div>
-
-      {/* Legend */}
+const CongestionHeatmap = ({ algo }: { algo: AlgoData }) => (
+  <GlassCard className="p-4 flex flex-col gap-2">
+    <div className="flex items-center justify-between">
+      <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Congestion Heatmap</h3>
       <div className="flex items-center gap-2">
-        <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Low</span>
-        <div className="flex-1 h-1.5 rounded-full" style={{
-          background: 'linear-gradient(to right, #22C55E, #EAB308, #EF4444)',
-          opacity: 0.7,
-        }} />
-        <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>High</span>
+        <span className="text-[9px] px-2 py-0.5 rounded"
+          style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
+          {algo.id === 'selfish' ? 'High Congestion' : 'Low Congestion'}
+        </span>
+        <span className="text-[9px] italic" style={{ color: 'rgba(255,255,255,0.2)' }}>sample data</span>
       </div>
-    </GlassCard>
-  )
-}
+    </div>
+
+    <div className="rounded-xl overflow-hidden flex-1"
+      style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(3,7,18,0.75)' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={HEATMAP_IMG[algo.id]}
+        alt={`${algo.label} congestion heatmap`}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+      />
+    </div>
+
+    {/* Legend */}
+    <div className="flex items-center gap-2">
+      <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Low</span>
+      <div className="flex-1 h-1.5 rounded-full" style={{
+        background: 'linear-gradient(to right, #22C55E, #EAB308, #EF4444)', opacity: 0.7,
+      }} />
+      <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>High</span>
+    </div>
+  </GlassCard>
+)
 
 // ─── Algorithm Detail Page ─────────────────────────────────────────────────────
 
@@ -830,16 +847,16 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
 
     {/* KPI Row — directly below header */}
     <div className="grid grid-cols-4 gap-4">
-      <KpiCard label="Avg. Travel Time" abbr="ATT" value={algo.travelTime} unit="min" sub="Per vehicle trip"
+      <KpiCard label="Avg. Travel Time" abbr="ATT" value={algo.travelTime} unit="min"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.travelTime} sparkData={algo.sparklines.travelTime} />
-      <KpiCard label="Avg. Wait Time" abbr="AWT" value={algo.waitTime} unit="sec" sub="At intersections"
+        change={algo.changes.travelTime} lowerBetter sparkData={algo.sparklines.travelTime} />
+      <KpiCard label="Avg. Wait Time" abbr="AWT" value={algo.waitTime} unit="sec"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.waitTime} sparkData={algo.sparklines.waitTime} />
-      <KpiCard label="Throughput" abbr="TPT" value={algo.throughput.toLocaleString()} unit="veh/hr" sub="Vehicles processed"
+        change={algo.changes.waitTime} lowerBetter sparkData={algo.sparklines.waitTime} />
+      <KpiCard label="Throughput" abbr="TPT" value={algo.throughput.toLocaleString()} unit="veh/hr"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
         change={algo.changes.throughput} sparkData={algo.sparklines.throughput} />
-      <KpiCard label="Avg. Speed" abbr="SPD" value={algo.speed} unit="km/h" sub="Network-wide"
+      <KpiCard label="Avg. Speed" abbr="SPD" value={algo.speed} unit="km/h"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
         change={algo.changes.speed} sparkData={algo.sparklines.speed} />
     </div>
@@ -955,8 +972,8 @@ const Sidebar = ({ activePage, setActivePage, mapSize, trafficScale, algorithm1 
       </span>
     </div>
 
-    {/* Controls — stacked vertically, pre-populated from current URL params */}
-    <div className="px-4 flex-shrink-0">
+    {/* Controls — scrollable so dropdowns are never clipped */}
+    <div className="px-4 flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
       <SimulationControls
         darkMode
         vertical
