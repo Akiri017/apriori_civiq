@@ -488,10 +488,10 @@ const GaugeChart = ({ value, max, label, unit, accentColor }: {
       <GaugeComponent
         id={`gauge-${label.replace(/\W/g, '')}`}
         percent={percent}
-        nrOfLevels={3}
-        colors={['#22C55E', '#EAB308', '#EF4444']}
-        arcWidth={0.25}
-        arcPadding={0.03}
+        nrOfLevels={20}
+        colors={['#16A34A', '#65A30D', '#CA8A04', '#DC2626']}
+        arcWidth={0.3}
+        arcPadding={0.02}
         needleColor={accentColor}
         needleBaseColor={accentColor}
         animate={false}
@@ -500,12 +500,12 @@ const GaugeChart = ({ value, max, label, unit, accentColor }: {
       />
       {/* Value + unit centred below arc */}
       <div className="flex flex-col items-center -mt-3">
-        <span className="text-[22px] font-bold tabular-nums leading-none" style={{ color: 'white' }}>
+        <span className="text-[24px] font-extrabold tabular-nums leading-none" style={{ color: '#ffffff' }}>
           {value}
         </span>
-        <span className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{unit}</span>
-        <span className="text-[9px] font-semibold uppercase tracking-wider mt-1.5 text-center"
-          style={{ color: 'rgba(255,255,255,0.38)' }}>{label}</span>
+        <span className="text-[11px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>{unit}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider mt-1.5 text-center"
+          style={{ color: 'rgba(255,255,255,0.65)' }}>{label}</span>
       </div>
     </GlassCard>
   )
