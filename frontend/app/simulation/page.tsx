@@ -3,6 +3,10 @@
 import { Suspense, useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import {
+  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer,
+} from 'recharts'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { SimulationControls } from '@/components/SimulationControls'
 
@@ -66,10 +70,26 @@ export interface KpiSeries {
   speed: number[]
 }
 export interface KpiChanges {
-  travelTime: number   // % vs first data point
+  travelTime: number
   waitTime: number
   throughput: number
   speed: number
+}
+
+// Per-episode data for detail chart — replace with real API data when backend is ready
+// Each entry: { episode, value, lo, hi } where lo/hi are confidence band bounds across seeds
+export interface EpisodePoint {
+  episode: number
+  value: number
+  lo: number    // lower confidence bound
+  hi: number    // upper confidence bound
+  ma: number    // 10-episode moving average
+}
+export interface EpisodeSeries {
+  travelTime: EpisodePoint[]
+  waitTime:   EpisodePoint[]
+  throughput: EpisodePoint[]
+  speed:      EpisodePoint[]
 }
 
 interface AlgoData {
@@ -96,6 +116,31 @@ interface AlgoData {
   // Pluggable time-series — replace with real API data when backend is ready
   sparklines: KpiSeries
   changes: KpiChanges
+  episodes: EpisodeSeries
+}
+
+// Generate dummy episode series with noise, trend, and confidence band
+// Replace calls to this with real API data when backend is ready
+function makeSeries(
+  start: number, end: number, noiseAmp: number,
+  band: number, episodes = 200, seed = 1
+): EpisodePoint[] {
+  const pts: EpisodePoint[] = []
+  let r = seed
+  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff - 0.5 }
+  const raw: number[] = []
+  for (let i = 0; i < episodes; i++) {
+    const t = i / (episodes - 1)
+    raw.push(start + (end - start) * t + rand() * noiseAmp)
+  }
+  const W = 10 // MA window
+  for (let i = 0; i < episodes; i++) {
+    const slice = raw.slice(Math.max(0, i - W + 1), i + 1)
+    const ma = slice.reduce((a, b) => a + b, 0) / slice.length
+    const noise = rand() * noiseAmp * 0.4
+    pts.push({ episode: i + 1, value: +raw[i].toFixed(2), lo: +(raw[i] - band + noise).toFixed(2), hi: +(raw[i] + band + noise).toFixed(2), ma: +ma.toFixed(2) })
+  }
+  return pts
 }
 
 const ALGO: Record<AlgoKey, AlgoData> = {
@@ -114,6 +159,12 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       speed:       [27, 31, 35, 38, 40, 42, 43, 44, 44.8, 45.2],
     },
     changes: { travelTime: -50.6, waitTime: -48.6, throughput: 35.9, speed: 67.4 },
+    episodes: {
+      travelTime:  makeSeries(8.5, 4.2,   0.5, 0.35, 200, 1),
+      waitTime:    makeSeries(36,  18.5,  1.8, 1.2,  200, 2),
+      throughput:  makeSeries(1380,1875,  38,  28,   200, 3),
+      speed:       makeSeries(27,  45.2,  1.8, 1.3,  200, 4),
+    },
   },
   qmix: {
     id: 'qmix', label: 'Monolithic QMIX', sublabel: 'Baseline RL', rank: 2,
@@ -130,6 +181,12 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       speed:       [23, 26, 29, 32, 34, 36, 37, 38, 38.3, 38.5],
     },
     changes: { travelTime: -43.1, waitTime: -37.4, throughput: 34.4, speed: 67.4 },
+    episodes: {
+      travelTime:  makeSeries(10.2, 5.8,  0.7, 0.5,  200, 5),
+      waitTime:    makeSeries(42,   26.3, 2.2, 1.7,  200, 6),
+      throughput:  makeSeries(1280, 1720, 45,  35,   200, 7),
+      speed:       makeSeries(23,   38.5, 2.1, 1.6,  200, 8),
+    },
   },
   selfish: {
     id: 'selfish', label: 'Selfish Routing', sublabel: 'Nash Equilibrium', rank: 3,
@@ -146,6 +203,12 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       speed:       [29.1, 27.5, 29.3, 27.8, 28.6, 27.9, 28.5, 28.0, 28.4, 28.3],
     },
     changes: { travelTime: 2.5, waitTime: 2.9, throughput: -2.2, speed: -2.7 },
+    episodes: {
+      travelTime:  makeSeries(8.1,  8.1,  0.9, 0.6,  200, 9),
+      waitTime:    makeSeries(35,   35,   3.0, 2.2,  200, 10),
+      throughput:  makeSeries(1428, 1428, 55,  42,   200, 11),
+      speed:       makeSeries(28.3, 28.3, 2.0, 1.5,  200, 12),
+    },
   },
 }
 
@@ -154,9 +217,9 @@ const ALGO_LIST = [ALGO.civiq, ALGO.qmix, ALGO.selfish]
 // ─── Reusable UI primitives ────────────────────────────────────────────────────
 
 const GlassCard = ({
-  children, className = '', style = {},
-}: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) => (
-  <div className={className} style={{
+  children, className = '', style = {}, onClick,
+}: { children: React.ReactNode; className?: string; style?: React.CSSProperties; onClick?: () => void }) => (
+  <div className={className} onClick={onClick} style={{
     background: 'linear-gradient(155deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
@@ -205,10 +268,10 @@ const SparkLine = ({ data, color }: { data: number[]; color: string }) => {
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
-const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, change, lowerBetter, sparkData }: {
+const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, change, lowerBetter, sparkData, onClick }: {
   label: string; abbr?: string; value: string | number; unit: string
   color: string; colorDim?: string; borderColor?: string
-  change?: number; lowerBetter?: boolean; sparkData?: number[]
+  change?: number; lowerBetter?: boolean; sparkData?: number[]; onClick?: () => void
 }) => {
   // Green = good outcome, regardless of direction
   const isGood = change === undefined ? true : lowerBetter ? change <= 0 : change >= 0
@@ -216,23 +279,33 @@ const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, chang
   const changeArrow = (change ?? 0) >= 0 ? '▲' : '▼'
   return (
     <GlassCard className="p-4 flex flex-col gap-2 transition-all duration-200"
+      onClick={onClick}
       style={{
         background: colorDim
           ? `linear-gradient(145deg, ${colorDim.replace('0.12', '0.10')} 0%, rgba(255,255,255,0.03) 100%)`
           : undefined,
         border: borderColor ? `1px solid ${borderColor.replace('0.3', '0.25')}` : undefined,
+        cursor: onClick ? 'pointer' : 'default',
       }}>
       {/* Title */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wider leading-none"
-          style={{ color: 'rgba(255,255,255,0.5)' }}>
-          {label}{abbr ? ` (${abbr})` : ''}
-        </span>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)"
-          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
+      <div className="flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wider leading-none"
+            style={{ color: 'rgba(255,255,255,0.5)' }}>
+            {label}{abbr ? ` (${abbr})` : ''}
+          </span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        {onClick && (
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded"
+            style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.28)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            View trend ↗
+          </span>
+        )}
       </div>
 
       {/* Value + sparkline row */}
@@ -813,13 +886,168 @@ const CongestionHeatmap = ({ algo }: { algo: AlgoData }) => (
   </GlassCard>
 )
 
+// ─── Episode Detail Modal ─────────────────────────────────────────────────────
+
+type EpisodeMetricKey = keyof EpisodeSeries
+
+const KPI_META: Record<EpisodeMetricKey, { label: string; abbr: string; unit: string }> = {
+  travelTime: { label: 'Avg. Travel Time', abbr: 'ATT', unit: 'min' },
+  waitTime:   { label: 'Avg. Wait Time',   abbr: 'AWT', unit: 'sec' },
+  throughput: { label: 'Throughput',        abbr: 'TPT', unit: 'veh/hr' },
+  speed:      { label: 'Avg. Speed',        abbr: 'SPD', unit: 'km/h' },
+}
+
+const EpisodeDetailModal = ({ algo, metricKey, onClose }: {
+  algo: AlgoData
+  metricKey: EpisodeMetricKey
+  onClose: () => void
+}) => {
+  const meta = KPI_META[metricKey]
+  const data = algo.episodes[metricKey]
+
+  // Custom tooltip
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    const byKey = Object.fromEntries(payload.map((p: any) => [p.dataKey, p.value]))
+    return (
+      <div style={{ background: 'rgba(4,9,22,0.97)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 12px', fontSize: 11 }}>
+        <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Episode {label}</p>
+        {byKey.value  !== undefined && <p style={{ color: algo.color }}>Value: <b>{byKey.value.toFixed(2)}</b> {meta.unit}</p>}
+        {byKey.ma     !== undefined && <p style={{ color: 'rgba(255,255,255,0.7)' }}>MA-10: <b>{byKey.ma.toFixed(2)}</b> {meta.unit}</p>}
+        {byKey.hi     !== undefined && byKey.lo !== undefined && (
+          <p style={{ color: 'rgba(255,255,255,0.35)' }}>Band: {byKey.lo.toFixed(2)} – {byKey.hi.toFixed(2)}</p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full mx-6 rounded-2xl p-6 flex flex-col gap-4"
+        style={{
+          maxWidth: '780px',
+          background: 'rgba(4,9,22,0.97)',
+          border: '1px solid rgba(255,255,255,0.13)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.08)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-[17px] font-bold leading-tight" style={{ color: 'rgba(255,255,255,0.92)' }}>
+              {meta.label}{' '}
+              <span style={{ color: algo.color }}>({meta.abbr})</span>
+            </h3>
+            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Per-episode trend · {algo.label} · {data.length} episodes
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-[2px] rounded" style={{ background: algo.color }} />
+            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>Per-episode value</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-[2px] rounded" style={{ background: 'rgba(255,255,255,0.65)', borderTop: '2px dashed rgba(255,255,255,0.65)' }} />
+            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>10-ep. moving avg.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-3.5 rounded-sm" style={{ background: algo.color, opacity: 0.18 }} />
+            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>Confidence band</span>
+          </div>
+        </div>
+
+        {/* Chart */}
+        <ResponsiveContainer width="100%" height={300}>
+          <ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 20 }}>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" strokeDasharray="3 4" />
+            <XAxis
+              dataKey="episode"
+              tick={{ fill: 'rgba(255,255,255,0.28)', fontSize: 10 }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+              label={{ value: 'Episode', position: 'insideBottom', offset: -12, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
+              interval={Math.floor(data.length / 10)}
+            />
+            <YAxis
+              tick={{ fill: 'rgba(255,255,255,0.28)', fontSize: 10 }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+              tickFormatter={(v) => `${v}`}
+              width={52}
+            />
+            <Tooltip content={<CustomTooltip />} />
+
+            {/* Confidence band: hi fills to baseline, lo paints over with bg colour */}
+            <Area type="monotone" dataKey="hi" stroke="none"
+              fill={algo.color} fillOpacity={0.14} dot={false} activeDot={false} legendType="none" isAnimationActive={false} />
+            <Area type="monotone" dataKey="lo" stroke="none"
+              fill="#040916" fillOpacity={1} dot={false} activeDot={false} legendType="none" isAnimationActive={false} />
+
+            {/* Raw per-episode line */}
+            <Line type="monotone" dataKey="value" stroke={algo.color} strokeWidth={1.5}
+              dot={false} activeDot={{ r: 3, fill: algo.color }} strokeOpacity={0.85} isAnimationActive={false} />
+
+            {/* Moving average overlay */}
+            <Line type="monotone" dataKey="ma" stroke="rgba(255,255,255,0.68)" strokeWidth={2}
+              dot={false} activeDot={false} strokeDasharray="5 3" isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+
+        {/* Summary stats row */}
+        <div className="grid grid-cols-4 gap-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          {[
+            { label: 'First ep.', value: data[0]?.value.toFixed(2) },
+            { label: 'Last ep.',  value: data[data.length - 1]?.value.toFixed(2) },
+            { label: 'Min',       value: Math.min(...data.map(d => d.value)).toFixed(2) },
+            { label: 'Max',       value: Math.max(...data.map(d => d.value)).toFixed(2) },
+          ].map(({ label, value }) => (
+            <div key={label} className="text-center">
+              <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>{label}</div>
+              <div className="text-[15px] font-bold tabular-nums" style={{ color: algo.color }}>{value}</div>
+              <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.28)' }}>{meta.unit}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Algorithm Detail Page ─────────────────────────────────────────────────────
 
 
 const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
   algo: AlgoData; mapSize: string; trafficScale: string
-}) => (
+}) => {
+  const [openModal, setOpenModal] = useState<EpisodeMetricKey | null>(null)
+
+  return (
   <div className="p-6 space-y-5 overflow-y-auto" style={{ height: '100%' }}>
+    {/* Episode detail modal */}
+    {openModal && (
+      <EpisodeDetailModal algo={algo} metricKey={openModal} onClose={() => setOpenModal(null)} />
+    )}
+
     {/* Header */}
     <div className="flex items-center justify-between gap-4">
       <div>
@@ -845,20 +1073,24 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
       </div>
     </div>
 
-    {/* KPI Row — directly below header */}
+    {/* KPI Row — click any card to view per-episode trend */}
     <div className="grid grid-cols-4 gap-4">
       <KpiCard label="Avg. Travel Time" abbr="ATT" value={algo.travelTime} unit="min"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.travelTime} lowerBetter sparkData={algo.sparklines.travelTime} />
+        change={algo.changes.travelTime} lowerBetter sparkData={algo.sparklines.travelTime}
+        onClick={() => setOpenModal('travelTime')} />
       <KpiCard label="Avg. Wait Time" abbr="AWT" value={algo.waitTime} unit="sec"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.waitTime} lowerBetter sparkData={algo.sparklines.waitTime} />
+        change={algo.changes.waitTime} lowerBetter sparkData={algo.sparklines.waitTime}
+        onClick={() => setOpenModal('waitTime')} />
       <KpiCard label="Throughput" abbr="TPT" value={algo.throughput.toLocaleString()} unit="veh/hr"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.throughput} sparkData={algo.sparklines.throughput} />
+        change={algo.changes.throughput} sparkData={algo.sparklines.throughput}
+        onClick={() => setOpenModal('throughput')} />
       <KpiCard label="Avg. Speed" abbr="SPD" value={algo.speed} unit="km/h"
         color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.speed} sparkData={algo.sparklines.speed} />
+        change={algo.changes.speed} sparkData={algo.sparklines.speed}
+        onClick={() => setOpenModal('speed')} />
     </div>
 
     {/* Charts row: left column stack + Map Player */}
@@ -891,7 +1123,8 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
       <MapPlayer algo={algo} mapSize={mapSize} />
     </div>
   </div>
-)
+  )
+}
 
 // ─── Sidebar ───────────────────────────────────────────────────────────────────
 
@@ -972,8 +1205,8 @@ const Sidebar = ({ activePage, setActivePage, mapSize, trafficScale, algorithm1 
       </span>
     </div>
 
-    {/* Controls — scrollable so dropdowns are never clipped */}
-    <div className="px-4 flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+    {/* Controls */}
+    <div className="px-4 flex-shrink-0">
       <SimulationControls
         darkMode
         vertical
