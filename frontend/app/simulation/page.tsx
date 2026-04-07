@@ -2373,6 +2373,225 @@ function MarlMetricsSection({ algo }: { algo: AlgoData }) {
 // ─── Algorithm Detail Page ─────────────────────────────────────────────────────
 
 
+// ─── Export Metrics Button ────────────────────────────────────────────────────
+
+function downloadFile(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+function ExportButton({ algo }: { algo: AlgoData }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const close = () => setOpen(false)
+
+  // ── CSV: KPI summary (one row per algorithm) ──
+  const exportKpiCsv = () => {
+    const headers = [
+      'Algorithm', 'Label',
+      'Travel Time (min)', 'Wait Time (sec)', 'Throughput (veh/hr)',
+      'Real-time Factor (x)', 'CO2 (g/km)', 'Fuel (L/100km)',
+      'Decision Latency (ms)', 'Convergence Episode', 'Cumulative Reward', 'Efficiency (%)',
+    ]
+    const row = [
+      algo.id, algo.label,
+      algo.travelTime, algo.waitTime, algo.throughput,
+      algo.speed, algo.co2, algo.fuel,
+      algo.computeTime, algo.convergence ?? 'N/A', algo.reward ?? 'N/A', algo.efficiency,
+    ]
+    downloadFile(
+      `civiq_${algo.id}_kpi.csv`,
+      [headers.join(','), row.join(',')].join('\n'),
+      'text/csv;charset=utf-8;',
+    )
+    close()
+  }
+
+  // ── CSV: per-episode KPI series ──
+  const exportEpisodesCsv = () => {
+    const headers = [
+      'Episode',
+      'Travel Time (min)', 'Travel Time MA',
+      'Wait Time (sec)',   'Wait Time MA',
+      'Throughput (veh/hr)', 'Throughput MA',
+      'Speed (x)', 'Speed MA',
+    ]
+    const n = algo.episodes.travelTime.length
+    const rows = Array.from({ length: n }, (_, i) => [
+      algo.episodes.travelTime[i].episode,
+      algo.episodes.travelTime[i].value, algo.episodes.travelTime[i].ma,
+      algo.episodes.waitTime[i]?.value ?? '', algo.episodes.waitTime[i]?.ma ?? '',
+      algo.episodes.throughput[i]?.value ?? '', algo.episodes.throughput[i]?.ma ?? '',
+      algo.episodes.speed[i]?.value ?? '', algo.episodes.speed[i]?.ma ?? '',
+    ])
+    downloadFile(
+      `civiq_${algo.id}_episodes.csv`,
+      [headers.join(','), ...rows.map(r => r.join(','))].join('\n'),
+      'text/csv;charset=utf-8;',
+    )
+    close()
+  }
+
+  // ── CSV: training curve (learning-based only) ──
+  const exportTrainingCsv = () => {
+    const headers = ['Episode', 'Reward', 'Reward MA', 'Reward Lo (CI)', 'Reward Hi (CI)']
+    const rows = algo.system.training.map(p => [p.episode, p.reward, p.ma, p.lo, p.hi])
+    downloadFile(
+      `civiq_${algo.id}_training.csv`,
+      [headers.join(','), ...rows.map(r => r.join(','))].join('\n'),
+      'text/csv;charset=utf-8;',
+    )
+    close()
+  }
+
+  // ── CSV: traffic analytics (queue / density / congestion) ──
+  const exportTrafficCsv = () => {
+    const headers = [
+      'Step',
+      'Queue Int-A (veh)', 'Queue Int-B (veh)', 'Queue Int-C (veh)', 'Queue Int-D (veh)',
+      'Occupancy (%)', 'Occupancy MA',
+      'Congestion Index', 'Congestion MA',
+    ]
+    const n = algo.queue.length
+    const rows = Array.from({ length: n }, (_, i) => [
+      algo.queue[i].step,
+      algo.queue[i].int1, algo.queue[i].int2, algo.queue[i].int3, algo.queue[i].int4,
+      algo.density[i]?.density ?? '', algo.density[i]?.ma ?? '',
+      algo.congestion[i]?.index ?? '', algo.congestion[i]?.ma ?? '',
+    ])
+    downloadFile(
+      `civiq_${algo.id}_traffic.csv`,
+      [headers.join(','), ...rows.map(r => r.join(','))].join('\n'),
+      'text/csv;charset=utf-8;',
+    )
+    close()
+  }
+
+  // ── JSON: full dump ──
+  const exportJson = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      algorithm: { id: algo.id, label: algo.label, sublabel: algo.sublabel, rank: algo.rank },
+      kpi: {
+        travelTime: algo.travelTime, waitTime: algo.waitTime, throughput: algo.throughput,
+        speed: algo.speed, co2: algo.co2, fuel: algo.fuel, computeTime: algo.computeTime,
+        convergenceEpisode: algo.convergence, cumulativeReward: algo.reward, efficiency: algo.efficiency,
+      },
+      changes: algo.changes,
+      episodes: algo.episodes,
+      system: algo.system,
+      traffic: { queue: algo.queue, density: algo.density, congestion: algo.congestion },
+      marl: algo.marl,
+    }
+    downloadFile(
+      `civiq_${algo.id}_full.json`,
+      JSON.stringify(payload, null, 2),
+      'application/json',
+    )
+    close()
+  }
+
+  type ExportItem = { label: string; sub: string; tag: string; action: () => void; disabled?: boolean }
+  const ITEMS: ExportItem[] = [
+    { label: 'KPI Summary',     sub: 'Key performance metrics',         tag: 'CSV',  action: exportKpiCsv },
+    { label: 'Episode Series',  sub: 'Per-episode KPI trend data',       tag: 'CSV',  action: exportEpisodesCsv },
+    { label: 'Traffic Data',    sub: 'Queue, occupancy & congestion',    tag: 'CSV',  action: exportTrafficCsv },
+    ...(algo.system.training.length
+      ? [{ label: 'Training Curve', sub: 'Reward per training episode', tag: 'CSV', action: exportTrainingCsv }]
+      : []),
+    { label: 'Full Export',     sub: 'All metrics and time series',      tag: 'JSON', action: exportJson },
+  ]
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0">
+      {/* Trigger */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[11px] font-semibold transition-all duration-150"
+        style={{
+          background: open ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.07)',
+          border: `1px solid ${open ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)'}`,
+          color: open ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.62)',
+        }}
+        onMouseEnter={e => { if (!open) { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.82)' } }}
+        onMouseLeave={e => { if (!open) { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.62)' } }}
+      >
+        {/* Download icon */}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export Metrics
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          className="absolute right-0 top-[calc(100%+6px)] rounded-xl overflow-hidden"
+          style={{
+            width: '230px', zIndex: 60,
+            background: 'rgba(6,10,26,0.98)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            boxShadow: '0 20px 56px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.07)',
+          }}
+        >
+          <div className="px-3.5 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              {algo.label}
+            </p>
+          </div>
+          {ITEMS.map(({ label, sub, tag, action }) => (
+            <button
+              key={label}
+              onClick={action}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors duration-100"
+              style={{ color: 'rgba(255,255,255,0.78)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+            >
+              {/* Format badge */}
+              <span className="text-[8px] font-black tabular-nums w-9 text-center py-0.5 rounded flex-shrink-0"
+                style={{
+                  background: tag === 'CSV' ? 'rgba(52,211,153,0.15)' : 'rgba(99,102,241,0.18)',
+                  color: tag === 'CSV' ? '#34D399' : '#818CF8',
+                  border: `1px solid ${tag === 'CSV' ? 'rgba(52,211,153,0.3)' : 'rgba(99,102,241,0.3)'}`,
+                }}>
+                {tag}
+              </span>
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold leading-tight">{label}</div>
+                <div className="text-[9px] mt-0.5 leading-tight" style={{ color: 'rgba(255,255,255,0.35)' }}>{sub}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Algorithm Detail Page ────────────────────────────────────────────────────
+
 const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
   algo: AlgoData; mapSize: string; trafficScale: string
 }) => {
@@ -2409,6 +2628,7 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
           </span>
         )}
       </div>
+      <ExportButton algo={algo} />
       <div className="px-4 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0"
         style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
         {algo.efficiency}% Efficiency Score
