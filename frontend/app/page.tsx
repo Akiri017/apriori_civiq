@@ -254,8 +254,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-4 gap-6">
             {researchers.map((r) => (
-              <GlassCard key={r.name} className="p-5 flex flex-col items-center text-center gap-3 group transition-all duration-200"
-                style={{ cursor: 'default' }}>
+              <GlassCard key={r.name} className="p-5 flex flex-col items-center text-center gap-3 group transition-all duration-200">
                 <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-white/10 group-hover:ring-cyan-400/40 transition-all duration-200"
                   style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
                   <img src={r.avatar} alt={r.name} className="w-full h-full object-cover" />

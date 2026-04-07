@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer,
+  ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { SimulationControls } from '@/components/SimulationControls'
@@ -117,6 +117,21 @@ export interface SystemSeries {
   cpu:      CpuPoint[]
 }
 
+// Queue length per intersection per simulation step
+export interface QueuePoint { step: number; int1: number; int2: number; int3: number; int4: number }
+// Vehicle density / road occupancy
+export interface DensityPoint { step: number; density: number; ma: number }
+// Composite congestion index (0–1 normalised)
+export interface CongestionPoint { step: number; index: number; ma: number }
+// MARL training diagnostics per episode (empty for non-learning algos)
+export interface MarlPoint {
+  episode: number
+  reward: number; rewardLo: number; rewardHi: number; rewardMa: number
+  tdLoss: number
+  gradNorm: number
+  qTakenMean: number; qTakenLo: number; qTakenHi: number; targetMean: number
+}
+
 interface AlgoData {
   id: AlgoKey
   label: string
@@ -143,6 +158,10 @@ interface AlgoData {
   changes: KpiChanges
   episodes: EpisodeSeries
   system: SystemSeries
+  queue: QueuePoint[]
+  density: DensityPoint[]
+  congestion: CongestionPoint[]
+  marl: MarlPoint[]   // empty for selfish (no training)
 }
 
 // Generate dummy episode series with noise, trend, and confidence band
@@ -212,6 +231,91 @@ function makeCpu(basePercent: number, peakPercent: number, noiseAmp: number, ste
   return pts
 }
 
+// Queue length (vehicles) per intersection over simulation steps
+function makeQueue(baseLevels: [number,number,number,number], noiseAmp: number, steps = 120, seed = 1): QueuePoint[] {
+  let r = seed
+  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff - 0.5 }
+  return Array.from({ length: steps }, (_, i) => {
+    const pattern = 1 + 0.35 * Math.sin(2 * Math.PI * (i / (steps - 1)) * 2.5 + 0.5)
+    return {
+      step: i + 1,
+      int1: Math.max(0, +(baseLevels[0] * pattern + rand() * noiseAmp).toFixed(1)),
+      int2: Math.max(0, +(baseLevels[1] * pattern + rand() * noiseAmp).toFixed(1)),
+      int3: Math.max(0, +(baseLevels[2] * pattern + rand() * noiseAmp).toFixed(1)),
+      int4: Math.max(0, +(baseLevels[3] * pattern + rand() * noiseAmp).toFixed(1)),
+    }
+  })
+}
+
+// Vehicle density / road occupancy rate (%) over simulation steps
+function makeDensity(basePercent: number, peakPercent: number, noiseAmp: number, steps = 120, seed = 1): DensityPoint[] {
+  let r = seed
+  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff - 0.5 }
+  const W = 8
+  const raw: number[] = []
+  for (let i = 0; i < steps; i++) {
+    const t = i / (steps - 1)
+    raw.push(Math.min(100, Math.max(0, basePercent + (peakPercent - basePercent) * Math.sin(Math.PI * t) + rand() * noiseAmp)))
+  }
+  return raw.map((v, i) => {
+    const slice = raw.slice(Math.max(0, i - W + 1), i + 1)
+    const ma = slice.reduce((a, b) => a + b, 0) / slice.length
+    return { step: i + 1, density: +v.toFixed(1), ma: +ma.toFixed(1) }
+  })
+}
+
+// Composite congestion index (0–1 scale) over simulation steps
+function makeCongestion(baseIdx: number, peakIdx: number, noiseAmp: number, steps = 120, seed = 1): CongestionPoint[] {
+  let r = seed
+  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff - 0.5 }
+  const W = 10
+  const raw: number[] = []
+  for (let i = 0; i < steps; i++) {
+    const t = i / (steps - 1)
+    // peak in middle, tapering off — models rush-hour buildup and dispersal
+    const shaped = baseIdx + (peakIdx - baseIdx) * Math.sin(Math.PI * t)
+    raw.push(Math.min(1, Math.max(0, shaped + rand() * noiseAmp)))
+  }
+  return raw.map((v, i) => {
+    const slice = raw.slice(Math.max(0, i - W + 1), i + 1)
+    const ma = slice.reduce((a, b) => a + b, 0) / slice.length
+    return { step: i + 1, index: +v.toFixed(3), ma: +ma.toFixed(3) }
+  })
+}
+
+// MARL diagnostic metrics per training episode
+function makeMarlMetrics(tdStart: number, qStart: number, qEnd: number, gradStart: number, rewardStart: number, rewardEnd: number, episodes = 200, seed = 1): MarlPoint[] {
+  let r = seed
+  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff - 0.5 }
+  const W = 10
+  const rawR: number[] = [], rawTd: number[] = [], rawQ: number[] = [], rawT: number[] = [], rawG: number[] = []
+  for (let i = 0; i < episodes; i++) {
+    const t = i / (episodes - 1)
+    const logistic = 1 / (1 + Math.exp(-10 * (t - 0.35)))
+    rawR.push(rewardStart + (rewardEnd - rewardStart) * logistic + rand() * 80)
+    rawTd.push(Math.max(0.0005, tdStart * Math.exp(-6 * t) + 0.04 + rand() * 0.28))
+    const qm = qStart + (qEnd - qStart) * (1 / (1 + Math.exp(-9 * (t - 0.38)))) + rand() * 7
+    rawQ.push(qm)
+    // target lags q_taken: gap starts large and narrows as training converges
+    rawT.push(qm - (3.5 + Math.abs(qEnd - qStart) * 0.04 * (1 - t)) + rand() * 3)
+    rawG.push(Math.max(0.0005, gradStart * Math.exp(-3.5 * t) + 0.08 + rand() * 0.35))
+  }
+  return rawR.map((rv, i) => {
+    const slice = rawR.slice(Math.max(0, i - W + 1), i + 1)
+    const ma = slice.reduce((a, b) => a + b, 0) / slice.length
+    const band = 55
+    const qStd = 3.8
+    return {
+      episode: i + 1,
+      reward: +rv.toFixed(1), rewardLo: +(rv - band).toFixed(1), rewardHi: +(rv + band).toFixed(1), rewardMa: +ma.toFixed(1),
+      tdLoss: +rawTd[i].toFixed(5),
+      gradNorm: +rawG[i].toFixed(5),
+      qTakenMean: +rawQ[i].toFixed(2), qTakenLo: +(rawQ[i] - qStd).toFixed(2), qTakenHi: +(rawQ[i] + qStd).toFixed(2),
+      targetMean: +rawT[i].toFixed(2),
+    }
+  })
+}
+
 const ALGO: Record<AlgoKey, AlgoData> = {
   civiq: {
     id: 'civiq', label: 'Hierarchical QMIX', sublabel: 'Civiq', rank: 1,
@@ -238,6 +342,10 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       training: makeTraining(-200, 1250, 120, 200, 13),
       cpu:      makeCpu(28, 72, 6, 120, 15),
     },
+    queue:      makeQueue([2.1, 3.2, 2.6, 1.8], 0.9, 120, 21),
+    density:    makeDensity(14, 28, 4, 120, 22),
+    congestion: makeCongestion(0.10, 0.24, 0.04, 120, 23),
+    marl:       makeMarlMetrics(2.8, -55, 95, 2.1, -200, 1250, 200, 24),
   },
   qmix: {
     id: 'qmix', label: 'Monolithic QMIX', sublabel: 'Baseline RL', rank: 2,
@@ -264,6 +372,10 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       training: makeTraining(-180, 980, 140, 200, 16),
       cpu:      makeCpu(22, 58, 5, 120, 18),
     },
+    queue:      makeQueue([4.5, 5.8, 5.1, 3.9], 1.3, 120, 25),
+    density:    makeDensity(22, 42, 6, 120, 26),
+    congestion: makeCongestion(0.19, 0.38, 0.06, 120, 27),
+    marl:       makeMarlMetrics(3.2, -50, 72, 2.5, -180, 980, 200, 28),
   },
   selfish: {
     id: 'selfish', label: 'Selfish Routing', sublabel: 'Nash Equilibrium', rank: 3,
@@ -290,6 +402,10 @@ const ALGO: Record<AlgoKey, AlgoData> = {
       training: [],  // Selfish Routing has no training phase
       cpu:      makeCpu(18, 35, 4, 120, 20),
     },
+    queue:      makeQueue([8.2, 10.5, 9.1, 7.4], 2.4, 120, 29),
+    density:    makeDensity(36, 62, 9, 120, 30),
+    congestion: makeCongestion(0.44, 0.71, 0.09, 120, 31),
+    marl:       [],  // Selfish Routing has no training phase
   },
 }
 
@@ -298,9 +414,9 @@ const ALGO_LIST = [ALGO.civiq, ALGO.qmix, ALGO.selfish]
 // ─── Reusable UI primitives ────────────────────────────────────────────────────
 
 const GlassCard = ({
-  children, className = '', style = {}, onClick,
-}: { children: React.ReactNode; className?: string; style?: React.CSSProperties; onClick?: () => void }) => (
-  <div className={className} onClick={onClick} style={{
+  children, className = '', style = {}, onClick, onMouseEnter, onMouseLeave,
+}: { children: React.ReactNode; className?: string; style?: React.CSSProperties; onClick?: () => void; onMouseEnter?: React.MouseEventHandler<HTMLDivElement>; onMouseLeave?: React.MouseEventHandler<HTMLDivElement> }) => (
+  <div className={className} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{
     background: 'linear-gradient(155deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
@@ -361,25 +477,33 @@ const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, chang
   return (
     <GlassCard className="group relative z-0 hover:z-30 p-4 flex flex-col gap-2 transition-all duration-200"
       onClick={onClick}
+      onMouseEnter={onClick ? (e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = borderColor?.replace('0.3', '0.5') ?? 'rgba(255,255,255,0.25)'
+        ;(e.currentTarget as HTMLElement).style.boxShadow = `0 0 0 1px ${borderColor?.replace('0.3', '0.15') ?? 'transparent'}, inset 0 1px 0 rgba(255,255,255,0.16), 0 12px 40px rgba(0,0,0,0.4)`
+        ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'
+      } : undefined}
+      onMouseLeave={onClick ? (e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = borderColor?.replace('0.3', '0.25') ?? 'rgba(255,255,255,0.14)'
+        ;(e.currentTarget as HTMLElement).style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.13), inset 0 -1px 0 rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.32)'
+        ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
+      } : undefined}
       style={{
         background: colorDim
           ? `linear-gradient(145deg, ${colorDim.replace('0.12', '0.10')} 0%, rgba(255,255,255,0.03) 100%)`
           : undefined,
         border: borderColor ? `1px solid ${borderColor.replace('0.3', '0.25')}` : undefined,
         cursor: onClick ? 'pointer' : 'default',
+        transition: 'border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease',
       }}>
       {/* Title */}
-      <div className="flex items-start justify-between gap-1.5">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wider leading-none"
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-[11px] font-semibold uppercase tracking-wider leading-none truncate"
             style={{ color: 'rgba(255,255,255,0.5)' }}>
-            {label}{abbr ? ` (${abbr})` : ''}
+            {label}
           </span>
           {description && (
-            <div
-              className="group/info relative z-20"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="group/info relative z-20 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
               <div
                 className="w-[18px] h-[18px] rounded-full flex items-center justify-center"
                 style={{
@@ -393,49 +517,45 @@ const KpiCard = ({ label, abbr, value, unit, color, colorDim, borderColor, chang
               </div>
               <div
                 className="pointer-events-none absolute top-[calc(100%+8px)] w-[280px] rounded-lg px-3 py-2 text-[10px] leading-relaxed opacity-0 translate-y-1 transition-all duration-150 group-hover/info:opacity-100 group-hover/info:translate-y-0"
-                style={
-                  descriptionSide === 'left'
-                    ? {
-                        right: 0,
-                        background: 'rgba(4,9,22,0.97)',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        color: 'rgba(255,255,255,0.88)',
-                        boxShadow: '0 12px 24px rgba(0,0,0,0.45)',
-                        zIndex: 90,
-                      }
-                    : {
-                      left: 0,
-                        background: 'rgba(4,9,22,0.97)',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        color: 'rgba(255,255,255,0.88)',
-                        boxShadow: '0 12px 24px rgba(0,0,0,0.45)',
-                        zIndex: 90,
-                      }
-                }
+                style={{
+                  ...(descriptionSide === 'left' ? { right: 0 } : { left: 0 }),
+                  background: 'rgba(4,9,22,0.97)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.88)',
+                  boxShadow: '0 12px 24px rgba(0,0,0,0.45)',
+                  zIndex: 90,
+                }}
               >
                 {description}
               </div>
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
-          {onClick && (
-            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded transition-colors duration-150"
-              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.28)', border: '1px solid rgba(255,255,255,0.08)' }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = 'rgba(56,189,248,0.18)'
-                ;(e.currentTarget as HTMLElement).style.color = 'rgba(186,230,253,0.95)'
-                ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(56,189,248,0.55)'
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'
-                ;(e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.28)'
-                ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'
-              }}>
-              View detail
-            </span>
-          )}
-        </div>
+        {onClick && (
+          <span
+            className="flex-shrink-0 text-[9px] font-semibold px-2 py-0.5 rounded-full"
+            style={{
+              background: 'rgba(56,189,248,0.1)',
+              color: 'rgba(186,230,253,0.65)',
+              border: '1px solid rgba(56,189,248,0.22)',
+              transition: 'background 0.12s ease, color 0.12s ease, border-color 0.12s ease',
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget as HTMLElement
+              el.style.background = 'rgba(56,189,248,0.2)'
+              el.style.color = 'rgba(186,230,253,1)'
+              el.style.borderColor = 'rgba(56,189,248,0.5)'
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLElement
+              el.style.background = 'rgba(56,189,248,0.1)'
+              el.style.color = 'rgba(186,230,253,0.65)'
+              el.style.borderColor = 'rgba(56,189,248,0.22)'
+            }}
+          >
+            View detail ↗
+          </span>
+        )}
       </div>
 
       {/* Value + sparkline row */}
@@ -1008,7 +1128,10 @@ function SummaryPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
     {/* Rank cards */}
     <div className="grid grid-cols-3 gap-4">
       {ALGO_LIST.map((a, i) => (
-        <GlassCard key={a.id} className="p-5 relative overflow-hidden" style={{ border: `1px solid ${a.border}` }}>
+        <GlassCard key={a.id} className="p-5 relative overflow-hidden"
+          style={{ border: `1px solid ${a.border}`, transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 16px 48px rgba(0,0,0,0.45), 0 0 0 1px ${a.border}` }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.13), inset 0 -1px 0 rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.32)' }}>
           <div className="absolute inset-0 pointer-events-none"
             style={{ background: `radial-gradient(ellipse at 80% 0%, ${a.colorDim}, transparent 65%)` }} />
           <div className="relative">
@@ -1021,8 +1144,8 @@ function SummaryPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
                 onClick={() => onNavigate(a.id)}
                 className="text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all duration-150"
                 style={{ color: a.color, background: a.colorDim, border: `1px solid ${a.border}` }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.75' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.3)'; (e.currentTarget as HTMLElement).style.transform = 'scale(1.04)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = 'none'; (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
               >
                 View Detail →
               </button>
@@ -1208,6 +1331,7 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [speed, setSpeed] = useState(1)
+  const [videoReady, setVideoReady] = useState(false)
 
   // Pan / zoom — start zoomed in so the video fills and users can explore
   const INITIAL_ZOOM = 2.5
@@ -1374,17 +1498,29 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
             preload="auto"
             style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', pointerEvents: 'none' }}
             onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime ?? 0)}
-            onLoadedMetadata={() => setDuration(videoRef.current?.duration ?? 0)}
+            onLoadedMetadata={() => { setDuration(videoRef.current?.duration ?? 0); setVideoReady(true) }}
             onEnded={() => setPlaying(false)}
           />
         </div>
 
+        {/* Loading overlay */}
+        {!videoReady && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"
+            style={{ background: 'rgba(0,0,0,0.45)' }}>
+            <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin"
+              style={{ borderColor: `${algo.color} transparent transparent transparent` }} />
+            <span className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>Loading video</span>
+          </div>
+        )}
         {/* Hint overlay when paused at start */}
-        {!playing && currentTime === 0 && (
+        {videoReady && !playing && currentTime === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.28)' }}>
-              Press ▶ to play · scroll to zoom · drag to pan
-            </span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+              style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <span className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                Press ▶ to play &nbsp;·&nbsp; scroll to zoom &nbsp;·&nbsp; drag to pan
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -1393,9 +1529,11 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
       <div className="flex items-center gap-2.5">
         {/* Restart */}
         <button onClick={reset}
-          className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)"
+          className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-150"
+          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.14)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.22)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.12)' }}>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)"
             strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
             <path d="M3 3v5h5"/>
@@ -1403,8 +1541,10 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
         </button>
         {/* Play / Pause */}
         <button onClick={togglePlay}
-          className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center transition-colors duration-150"
-          style={{ background: algo.colorDim, border: `1px solid ${algo.border}` }}>
+          className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center transition-all duration-150"
+          style={{ background: algo.colorDim, border: `1px solid ${algo.border}` }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.4)' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = 'none' }}>
           {playing ? (
             <svg width="10" height="10" viewBox="0 0 10 10" fill={algo.color}>
               <rect x="1" y="1" width="3" height="8" rx="0.5"/>
@@ -1416,17 +1556,22 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
             </svg>
           )}
         </button>
-        {/* Seek bar */}
-        <div className="flex-1 h-1.5 rounded-full relative cursor-pointer"
-          style={{ background: 'rgba(255,255,255,0.1)' }}
+        {/* Seek bar — expands on hover */}
+        <div className="flex-1 relative flex items-center cursor-pointer" style={{ height: '16px' }}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
             seek((e.clientX - rect.left) / rect.width)
-          }}>
-          <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: algo.color }} />
-          <div className="absolute top-1/2 w-3 h-3 rounded-full pointer-events-none"
+          }}
+          onMouseEnter={(e) => { const bar = e.currentTarget.querySelector('.seek-track') as HTMLElement; if (bar) bar.style.height = '6px' }}
+          onMouseLeave={(e) => { const bar = e.currentTarget.querySelector('.seek-track') as HTMLElement; if (bar) bar.style.height = '4px' }}>
+          <div className="seek-track absolute inset-x-0 rounded-full overflow-hidden"
+            style={{ height: '4px', background: 'rgba(255,255,255,0.1)', top: '50%', transform: 'translateY(-50%)', transition: 'height 0.12s ease' }}>
+            <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: algo.color }} />
+          </div>
+          <div className="absolute rounded-full pointer-events-none"
             style={{
-              left: `${pct * 100}%`,
+              left: `${pct * 100}%`, top: '50%',
+              width: '12px', height: '12px',
               transform: 'translate(-50%, -50%)',
               background: 'white',
               boxShadow: `0 0 6px ${algo.color}, 0 0 0 2px ${algo.color}`,
@@ -1436,12 +1581,14 @@ const MapPlayer = ({ algo, mapSize }: { algo: AlgoData; mapSize: string }) => {
         <div className="flex items-center gap-0.5 flex-shrink-0">
           {[0.5, 1, 2, 4].map(s => (
             <button key={s} onClick={() => setSpeed(s)}
-              className="text-[9px] font-bold px-1.5 py-0.5 rounded transition-colors duration-150"
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded transition-all duration-150"
               style={{
                 background: speed === s ? algo.colorDim : 'transparent',
-                color: speed === s ? algo.color : 'rgba(255,255,255,0.28)',
+                color: speed === s ? algo.color : 'rgba(255,255,255,0.32)',
                 border: speed === s ? `1px solid ${algo.border}` : '1px solid transparent',
-              }}>
+              }}
+              onMouseEnter={(e) => { if (s !== speed) { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.65)' } }}
+              onMouseLeave={(e) => { if (s !== speed) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.32)' } }}>
               {s}×
             </button>
           ))}
@@ -1481,39 +1628,298 @@ const HEATMAP_IMG: Record<AlgoKey, string> = {
   selfish: '/heatmap_output/bgc_full_intersection_based/heatmap_high.png',
 }
 
-const CongestionHeatmap = ({ algo }: { algo: AlgoData }) => (
-  <GlassCard className="p-4 flex flex-col gap-2">
-    <div className="flex items-center justify-between">
-      <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Congestion Heatmap</h3>
-      <div className="flex items-center gap-2">
-        <span className="text-[9px] px-2 py-0.5 rounded"
-          style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
-          {algo.id === 'selfish' ? 'High Congestion' : 'Low Congestion'}
-        </span>
-        <span className="text-[9px] italic" style={{ color: 'rgba(255,255,255,0.2)' }}>sample data</span>
+const INT_KEYS = ['int1','int2','int3','int4'] as const
+type IntKey = typeof INT_KEYS[number]
+const INT_LABEL: Record<IntKey, string> = { int1: 'Intersection A', int2: 'Intersection B', int3: 'Intersection C', int4: 'Intersection D' }
+
+// ─── Congestion Detail Modal ───────────────────────────────────────────────────
+
+type CongestionTab = 'queue' | 'density' | 'congestion'
+const CONGESTION_TABS: { key: CongestionTab; label: string; sub: string }[] = [
+  { key: 'queue',      label: 'Queue Length',    sub: 'per intersection over time' },
+  { key: 'density',    label: 'Road Occupancy',  sub: 'mean network density (%)' },
+  { key: 'congestion', label: 'Congestion Index', sub: 'composite 0–1 score' },
+]
+
+function CongestionDetailModal({ algo, onClose }: { algo: AlgoData; onClose: () => void }) {
+  const [tab, setTab] = useState<CongestionTab>('queue')
+  const [selInt, setSelInt] = useState<IntKey>('int1')
+  const INT_COLOR: Record<IntKey, string> = {
+    int1: algo.color, int2: 'rgba(251,191,36,0.9)', int3: 'rgba(52,211,153,0.9)', int4: 'rgba(248,113,113,0.85)',
+  }
+  const current = CONGESTION_TABS.find(t => t.key === tab)!
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full mx-6 rounded-2xl p-6 flex flex-col gap-4"
+        style={{
+          maxWidth: '820px',
+          background: 'rgba(4,9,22,0.97)',
+          border: '1px solid rgba(255,255,255,0.13)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.08)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-[17px] font-bold leading-tight" style={{ color: 'rgba(255,255,255,0.92)' }}>
+              {current.label}{' '}
+              <span style={{ color: algo.color }}>· {algo.label}</span>
+            </h3>
+            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{current.sub}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.14)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          {CONGESTION_TABS.map(({ key, label }) => (
+            <button key={key} onClick={() => setTab(key)}
+              className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-150"
+              style={{
+                background: tab === key ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: tab === key ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.38)',
+                border: tab === key ? '1px solid rgba(255,255,255,0.14)' : '1px solid transparent',
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Queue Length ── */}
+        {tab === 'queue' && (
+          <>
+            <div className="flex items-center justify-between gap-4">
+              {/* Intersection selector pills */}
+              <div className="flex gap-1.5">
+                {INT_KEYS.map(k => (
+                  <button key={k} onClick={() => setSelInt(k)}
+                    className="px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-150"
+                    style={{
+                      background: selInt === k ? algo.colorDim : 'rgba(255,255,255,0.05)',
+                      border: selInt === k ? `1px solid ${INT_COLOR[k]}` : '1px solid rgba(255,255,255,0.08)',
+                      color: selInt === k ? INT_COLOR[k] : 'rgba(255,255,255,0.42)',
+                    }}>
+                    {INT_LABEL[k]}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <InfoBubble side="right" text="Vehicles waiting behind the stop line at the selected intersection each simulation step. Sustained peaks indicate signal inefficiency or upstream congestion spilling into this bottleneck." />
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={algo.queue} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+                <XAxis dataKey="step" tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
+                  label={{ value: 'Simulation Step', position: 'insideBottom', offset: -14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
+                  interval={Math.floor(algo.queue.length / 8)} />
+                <YAxis tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE} width={40}
+                  label={{ value: 'Vehicles', angle: -90, position: 'insideLeft', offset: 14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }} />
+                <Tooltip content={<ChartTooltip xLabel="Step" rows={[{ key: selInt, label: INT_LABEL[selInt], color: INT_COLOR[selInt], unit: 'veh' }]} />} />
+                <Area type="monotone" dataKey={selInt} stroke={INT_COLOR[selInt]} strokeWidth={2}
+                  fill={INT_COLOR[selInt]} fillOpacity={0.12} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+            {/* Summary stats */}
+            <div className="grid grid-cols-4 gap-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              {(() => {
+                const vals = algo.queue.map(p => p[selInt])
+                return [
+                  { label: 'Min',  value: Math.min(...vals).toFixed(1) },
+                  { label: 'Max',  value: Math.max(...vals).toFixed(1) },
+                  { label: 'Mean', value: (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) },
+                  { label: 'Steps', value: String(vals.length) },
+                ].map(({ label, value }) => (
+                  <div key={label} className="text-center">
+                    <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>{label}</div>
+                    <div className="text-[15px] font-bold tabular-nums" style={{ color: algo.color }}>{value}</div>
+                    <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.28)' }}>veh</div>
+                  </div>
+                ))
+              })()}
+            </div>
+          </>
+        )}
+
+        {/* ── Road Occupancy ── */}
+        {tab === 'density' && (
+          <>
+            <div className="flex items-center gap-4 justify-between">
+              <div className="flex items-center gap-4">
+                {[
+                  { color: algo.color, label: 'Occupancy rate' },
+                  { color: 'rgba(255,255,255,0.65)', label: 'MA-8', dashed: true },
+                ].map(({ color, label, dashed }) => (
+                  <div key={label} className="flex items-center gap-1.5">
+                    <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2" strokeDasharray={dashed ? '4 2' : undefined} /></svg>
+                    <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+              <InfoBubble side="right" text="Percentage of road space occupied by vehicles at each timestep. Values above ~40% indicate congested flow (LOS D or worse). The arc shape shows peak-hour congestion buildup and dispersal across the episode." />
+            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={algo.density} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+                <XAxis dataKey="step" tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
+                  label={{ value: 'Simulation Step', position: 'insideBottom', offset: -14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
+                  interval={Math.floor(algo.density.length / 8)} />
+                <YAxis tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE} width={44} domain={[0, 100]}
+                  label={{ value: '%', angle: -90, position: 'insideLeft', offset: 14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }} />
+                <Tooltip content={<ChartTooltip xLabel="Step" rows={[
+                  { key: 'density', label: 'Occupancy', color: algo.color, unit: '%' },
+                  { key: 'ma',      label: 'MA-8',       color: 'rgba(255,255,255,0.65)', unit: '%' },
+                ]} />} />
+                <Area type="monotone" dataKey="density" stroke={algo.color} strokeWidth={2}
+                  fill={algo.color} fillOpacity={0.13} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+                <Line type="monotone" dataKey="ma" stroke="rgba(255,255,255,0.65)" strokeWidth={2}
+                  dot={false} activeDot={false} strokeDasharray="5 3" isAnimationActive={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+            <div className="grid grid-cols-4 gap-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              {(() => {
+                const vals = algo.density.map(p => p.density)
+                return [
+                  { label: 'Min',  value: Math.min(...vals).toFixed(1), unit: '%' },
+                  { label: 'Peak', value: Math.max(...vals).toFixed(1), unit: '%' },
+                  { label: 'Mean', value: (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1), unit: '%' },
+                  { label: 'Steps', value: String(vals.length), unit: 'steps' },
+                ].map(({ label, value, unit }) => (
+                  <div key={label} className="text-center">
+                    <div className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>{label}</div>
+                    <div className="text-[15px] font-bold tabular-nums" style={{ color: algo.color }}>{value}</div>
+                    <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.28)' }}>{unit}</div>
+                  </div>
+                ))
+              })()}
+            </div>
+          </>
+        )}
+
+        {/* ── Congestion Index ── */}
+        {tab === 'congestion' && (
+          <>
+            <div className="flex items-center gap-4 justify-between">
+              <div className="flex items-center gap-4">
+                {[
+                  { color: algo.color, label: 'Raw index', opacity: 0.4 },
+                  { color: algo.color, label: 'Rolling avg. (MA-10)' },
+                ].map(({ color, label, opacity }) => (
+                  <div key={label} className="flex items-center gap-1.5">
+                    <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2" strokeOpacity={opacity ?? 1} /></svg>
+                    <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.38)' }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+              <InfoBubble side="right" text="Composite score (0 = free flow, 1 = gridlock) combining queue length, occupancy, and travel-time deviation. The raw index is noisy per-step; the rolling average surfaces the underlying trend across the episode." />
+            </div>
+            <ResponsiveContainer width="100%" height={270}>
+              <ComposedChart data={algo.congestion} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+                <XAxis dataKey="step" tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
+                  label={{ value: 'Simulation Step', position: 'insideBottom', offset: -14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
+                  interval={Math.floor(algo.congestion.length / 8)} />
+                <YAxis tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE} width={44} domain={[0, 1]}
+                  label={{ value: 'Index', angle: -90, position: 'insideLeft', offset: 14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }} />
+                <Tooltip content={<ChartTooltip xLabel="Step" rows={[
+                  { key: 'index', label: 'Congestion', color: algo.color, unit: '' },
+                  { key: 'ma',    label: 'MA-10',       color: 'rgba(255,255,255,0.72)', unit: '' },
+                ]} />} />
+                <Area type="monotone" dataKey="index" stroke={algo.color} strokeWidth={1}
+                  fill={algo.color} fillOpacity={0.07} dot={false} strokeOpacity={0.35} isAnimationActive={false} />
+                <Line type="monotone" dataKey="ma" stroke={algo.color} strokeWidth={2.5}
+                  dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+            {/* Level legend + peak stat */}
+            <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center gap-4">
+                {[
+                  { label: 'Free Flow',  range: '< 0.25',    color: '#4ADE80' },
+                  { label: 'Stable',     range: '0.25–0.50', color: '#FACC15' },
+                  { label: 'Congested',  range: '0.50–0.75', color: '#FB923C' },
+                  { label: 'Gridlock',   range: '> 0.75',    color: '#F87171' },
+                ].map(({ label, range, color }) => (
+                  <div key={label} className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+                    <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                      {label} <span style={{ color: 'rgba(255,255,255,0.25)' }}>({range})</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-right flex-shrink-0">
+                <div className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.28)' }}>Peak MA Index</div>
+                <div className="text-[16px] font-bold tabular-nums" style={{ color: algo.color }}>
+                  {Math.max(...algo.congestion.map(p => p.ma)).toFixed(3)}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
+  )
+}
 
-    <div className="rounded-xl overflow-hidden flex-1"
-      style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(3,7,18,0.75)' }}>
+// ─── Congestion Heatmap card (simple — View Detail opens the modal) ────────────
+
+function CongestionHeatmap({ algo, onViewDetail }: { algo: AlgoData; onViewDetail: () => void }) {
+  return (
+    <GlassCard className="p-4 flex flex-col gap-2">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Congestion Heatmap</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] px-2 py-0.5 rounded"
+            style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
+            {algo.id === 'selfish' ? 'High Congestion' : 'Low Congestion'}
+          </span>
+          <button
+            onClick={onViewDetail}
+            className="text-[9px] font-semibold px-2.5 py-1 rounded-full transition-all duration-150"
+            style={{ color: algo.color, background: algo.colorDim, border: `1px solid ${algo.border}` }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.3)'; (e.currentTarget as HTMLElement).style.transform = 'scale(1.04)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.filter = 'none'; (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
+          >
+            View Detail ↗
+          </button>
+        </div>
+      </div>
+
+      {/* Heatmap image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={HEATMAP_IMG[algo.id]}
-        alt={`${algo.label} congestion heatmap`}
-        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-      />
-    </div>
+      <div className="rounded-xl overflow-hidden flex-1" style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(3,7,18,0.75)' }}>
+        <img src={HEATMAP_IMG[algo.id]} alt={`${algo.label} congestion heatmap`}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+      </div>
 
-    {/* Legend */}
-    <div className="flex items-center gap-2">
-      <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Low</span>
-      <div className="flex-1 h-1.5 rounded-full" style={{
-        background: 'linear-gradient(to right, #22C55E, #EAB308, #EF4444)', opacity: 0.7,
-      }} />
-      <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>High</span>
-    </div>
-  </GlassCard>
-)
+      {/* Legend */}
+      <div className="flex items-center gap-2">
+        <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Low</span>
+        <div className="flex-1 h-1.5 rounded-full" style={{ background: 'linear-gradient(to right, #22C55E, #EAB308, #EF4444)', opacity: 0.7 }} />
+        <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>High</span>
+      </div>
+    </GlassCard>
+  )
+}
 
 // ─── Episode Detail Modal ─────────────────────────────────────────────────────
 
@@ -1780,6 +2186,190 @@ const CpuChart = ({ algo }: { algo: AlgoData }) => (
   </GlassCard>
 )
 
+// ─── Shared info bubble (matches KpiCard / GaugeChart tooltip style) ──────────
+
+function InfoBubble({ text, side = 'left' }: { text: string; side?: 'left' | 'right' }) {
+  return (
+    <div className="group/info relative z-20 flex-shrink-0">
+      <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-default"
+        style={{ background: 'rgba(6,182,212,0.2)', border: '1px solid rgba(6,182,212,0.65)', color: 'rgba(217,249,255,0.95)', boxShadow: '0 0 0 1px rgba(0,0,0,0.2) inset' }}>
+        <span className="text-[10px] font-bold leading-none">!</span>
+      </div>
+      <div className="pointer-events-none absolute top-[calc(100%+8px)] w-[260px] rounded-lg px-3 py-2 text-[10px] leading-relaxed opacity-0 translate-y-1 transition-all duration-150 group-hover/info:opacity-100 group-hover/info:translate-y-0"
+        style={{
+          ...(side === 'right' ? { right: 0 } : { left: 0 }),
+          background: 'rgba(4,9,22,0.97)', border: '1px solid rgba(255,255,255,0.12)',
+          color: 'rgba(255,255,255,0.88)', boxShadow: '0 12px 24px rgba(0,0,0,0.45)', zIndex: 90,
+        }}>
+        {text}
+      </div>
+    </div>
+  )
+}
+
+// ─── MARL Training Diagnostics ────────────────────────────────────────────────
+
+function MarlMetricsSection({ algo }: { algo: AlgoData }) {
+  const data = algo.marl
+  if (!data.length) return null  // not rendered for selfish (no training)
+
+  const xAxis = (
+    <XAxis dataKey="episode" tick={{ ...CHART_AXIS, fontSize: 9 }} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
+      label={{ value: 'Episode', position: 'insideBottom', offset: -10, fill: 'rgba(255,255,255,0.28)', fontSize: 10 }}
+      interval={Math.floor(data.length / 5)} />
+  )
+
+  return (
+    <>
+      {/* Section header */}
+      <div className="flex items-center gap-3">
+        <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>MARL Training Diagnostics</span>
+        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
+        <span className="text-[10px] px-2 py-0.5 rounded"
+          style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
+          {data.length} episodes
+        </span>
+      </div>
+
+      {/* ── 1. Episode Cumulative Reward (full-width, prominent) ── */}
+      <GlassCard className="p-5 flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Episode Cumulative Reward</span>
+              <InfoBubble text="Total reward earned by all agents during each training episode. A rising curve that plateaus signals policy convergence. The shaded band shows the inter-seed confidence interval; the dashed line is a 10-episode moving average." />
+            </div>
+            <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
+              Primary training health indicator · shaded = seed confidence band
+            </p>
+          </div>
+          <div className="flex items-center gap-4 flex-shrink-0">
+            {[
+              { color: algo.color, label: 'Per-episode reward' },
+              { color: 'rgba(255,255,255,0.65)', label: 'MA-10', dashed: true },
+            ].map(({ color, label, dashed }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke={color} strokeWidth="2" strokeDasharray={dashed ? '4 2' : undefined} /></svg>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-3 rounded-sm" style={{ background: algo.color, opacity: 0.18 }} />
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Conf. band</span>
+            </div>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <ComposedChart data={data} margin={{ top: 4, right: 12, left: 0, bottom: 20 }}>
+            <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+            {xAxis}
+            <YAxis tick={CHART_AXIS} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE} width={52}
+              label={{ value: 'Reward', angle: -90, position: 'insideLeft', offset: 14, fill: 'rgba(255,255,255,0.28)', fontSize: 11 }} />
+            <Tooltip content={<ChartTooltip xLabel="Ep." rows={[
+              { key: 'reward',    label: 'Reward', color: algo.color, unit: '' },
+              { key: 'rewardMa',  label: 'MA-10',  color: 'rgba(255,255,255,0.65)', unit: '' },
+            ]} />} />
+            <Area type="monotone" dataKey="rewardHi" stroke="none" fill={algo.color} fillOpacity={0.14} dot={false} activeDot={false} legendType="none" isAnimationActive={false} />
+            <Area type="monotone" dataKey="rewardLo" stroke="none" fill="#040916" fillOpacity={1} dot={false} activeDot={false} legendType="none" isAnimationActive={false} />
+            <Line type="monotone" dataKey="reward" stroke={algo.color} strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} strokeOpacity={0.85} isAnimationActive={false} />
+            <Line type="monotone" dataKey="rewardMa" stroke="rgba(255,255,255,0.65)" strokeWidth={2} dot={false} activeDot={false} strokeDasharray="5 3" isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </GlassCard>
+
+      {/* ── 2–4. Bottom row: TD Loss | Q-values | Gradient Norm ── */}
+      <div className="grid grid-cols-3 gap-4">
+
+        {/* TD Loss — log Y-axis */}
+        <GlassCard className="p-4 flex flex-col gap-2">
+          <div className="flex items-start gap-2">
+            <div className="flex-1">
+              <span className="text-[12px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>TD Loss</span>
+              <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>Log scale · Q-net + mixing network</p>
+            </div>
+            <InfoBubble side="right" text="Temporal-difference error used to update the Q-network and QMIX mixing network. Loss drops sharply early then flattens — a log Y-axis keeps the full curve readable instead of a flat line after the initial drop." />
+          </div>
+          <ResponsiveContainer width="100%" height={170}>
+            <ComposedChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 16 }}>
+              <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+              {xAxis}
+              <YAxis tick={{ ...CHART_AXIS, fontSize: 9 }} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
+                width={44} scale="log" domain={[0.0001, 'auto']}
+                tickFormatter={(v) => v < 0.01 ? v.toExponential(0) : String(+v.toFixed(3))} />
+              <Tooltip content={<ChartTooltip xLabel="Ep." rows={[{ key: 'tdLoss', label: 'TD Loss', color: '#FB923C', unit: '' }]} />} />
+              <Area type="monotone" dataKey="tdLoss" stroke="#FB923C" strokeWidth={1.5}
+                fill="#FB923C" fillOpacity={0.12} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </GlassCard>
+
+        {/* Q-Value Estimates — two series + std band */}
+        <GlassCard className="p-4 flex flex-col gap-2">
+          <div className="flex items-start gap-2">
+            <div className="flex-1">
+              <span className="text-[12px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Q-Value Estimates</span>
+              <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>q_taken vs target · ± std band</p>
+            </div>
+            <InfoBubble side="right" text="q_taken_mean (solid) is the Q-value for actions actually taken; target_mean (dashed) is the Bellman target. A persistent gap between them indicates overestimation bias. The shaded band is ±1 std of q_taken across agents." />
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {[
+              { color: '#A78BFA', label: 'q_taken_mean' },
+              { color: 'rgba(167,139,250,0.45)', label: 'target_mean', dashed: true },
+            ].map(({ color, label, dashed }) => (
+              <div key={label} className="flex items-center gap-1">
+                <svg width="14" height="5"><line x1="0" y1="2.5" x2="14" y2="2.5" stroke={color} strokeWidth="1.8" strokeDasharray={dashed ? '3 2' : undefined} /></svg>
+                <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.32)' }}>{label}</span>
+              </div>
+            ))}
+          </div>
+          <ResponsiveContainer width="100%" height={150}>
+            <ComposedChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 16 }}>
+              <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+              {xAxis}
+              <YAxis tick={{ ...CHART_AXIS, fontSize: 9 }} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE} width={40} />
+              <Tooltip content={<ChartTooltip xLabel="Ep." rows={[
+                { key: 'qTakenMean', label: 'q_taken', color: '#A78BFA', unit: '' },
+                { key: 'targetMean', label: 'target',  color: 'rgba(167,139,250,0.6)', unit: '' },
+              ]} />} />
+              {/* ±std band around q_taken */}
+              <Area type="monotone" dataKey="qTakenHi" stroke="none" fill="#A78BFA" fillOpacity={0.14} dot={false} activeDot={false} legendType="none" isAnimationActive={false} />
+              <Area type="monotone" dataKey="qTakenLo" stroke="none" fill="#040916" fillOpacity={1}  dot={false} activeDot={false} legendType="none" isAnimationActive={false} />
+              <Line type="monotone" dataKey="qTakenMean" stroke="#A78BFA" strokeWidth={2} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="targetMean" stroke="rgba(167,139,250,0.5)" strokeWidth={1.5} dot={false} activeDot={false} strokeDasharray="4 2" isAnimationActive={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </GlassCard>
+
+        {/* Gradient Norm — log Y-axis + reference line */}
+        <GlassCard className="p-4 flex flex-col gap-2">
+          <div className="flex items-start gap-2">
+            <div className="flex-1">
+              <span className="text-[12px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Gradient Norm</span>
+              <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>Log scale · instability detector</p>
+            </div>
+            <InfoBubble side="right" text="L2 norm of the policy gradient per episode. Large early spikes are expected; values should stabilise as training converges. Persistent large norms indicate instability. The dashed line marks the target healthy threshold." />
+          </div>
+          <ResponsiveContainer width="100%" height={170}>
+            <ComposedChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 16 }}>
+              <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 4" />
+              {xAxis}
+              <YAxis tick={{ ...CHART_AXIS, fontSize: 9 }} tickLine={CHART_TICK_LINE} axisLine={CHART_AXIS_LINE}
+                width={44} scale="log" domain={[0.0001, 'auto']}
+                tickFormatter={(v) => v < 0.01 ? v.toExponential(0) : String(+v.toFixed(3))} />
+              <Tooltip content={<ChartTooltip xLabel="Ep." rows={[{ key: 'gradNorm', label: 'Grad norm', color: '#34D399', unit: '' }]} />} />
+              <ReferenceLine y={0.5} stroke="rgba(255,255,255,0.2)" strokeDasharray="5 3"
+                label={{ value: 'healthy ≤ 0.5', position: 'insideTopRight', fill: 'rgba(255,255,255,0.28)', fontSize: 8 }} />
+              <Area type="monotone" dataKey="gradNorm" stroke="#34D399" strokeWidth={1.5}
+                fill="#34D399" fillOpacity={0.11} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </GlassCard>
+      </div>
+    </>
+  )
+}
+
 // ─── Algorithm Detail Page ─────────────────────────────────────────────────────
 
 
@@ -1787,12 +2377,17 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
   algo: AlgoData; mapSize: string; trafficScale: string
 }) => {
   const [openModal, setOpenModal] = useState<EpisodeMetricKey | null>(null)
+  const [congestionDetail, setCongestionDetail] = useState(false)
 
   return (
   <div className="p-6 space-y-5 overflow-y-auto" style={{ height: '100%' }}>
     {/* Episode detail modal */}
     {openModal && (
       <EpisodeDetailModal algo={algo} metricKey={openModal} onClose={() => setOpenModal(null)} />
+    )}
+    {/* Congestion detail modal */}
+    {congestionDetail && (
+      <CongestionDetailModal algo={algo} onClose={() => setCongestionDetail(false)} />
     )}
 
     {/* Header */}
@@ -1868,7 +2463,7 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
           )}
         </GlassCard>
 
-        <CongestionHeatmap algo={algo} />
+        <CongestionHeatmap algo={algo} onViewDetail={() => setCongestionDetail(true)} />
       </div>
 
       {/* Map Player (col 2–3) */}
@@ -1888,6 +2483,9 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
         <CpuChart algo={algo} />
       </div>
     )}
+
+    {/* MARL training diagnostics (learning-based only) */}
+    <MarlMetricsSection algo={algo} />
   </div>
   )
 }
@@ -1950,7 +2548,9 @@ const Sidebar = ({ activePage, setActivePage, mapSize, trafficScale, algorithm1 
               background: isActive ? `${col}18` : 'transparent',
               border: isActive ? `1px solid ${col}40` : '1px solid transparent',
               color: isActive ? col : 'rgba(255,255,255,0.45)',
-            }}>
+            }}
+            onMouseEnter={(e) => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.72)' } }}
+            onMouseLeave={(e) => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)' } }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d={item.d} />
