@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useEffect, useRef } from 'react'
+import { Suspense, useState, useEffect, useRef, memo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
@@ -663,14 +663,14 @@ function CompareModal({ onClose, onConfirm }: {
             <div className="space-y-1.5">
               <p className="text-[9px] font-semibold uppercase tracking-wider text-center mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Side A</p>
               {ALGO_LIST.map((a) => (
-                <button key={a.id} onClick={() => setLeft(a.id)} disabled={a.id === right}
+                <button key={a.id}
+                  onClick={() => { if (a.id === right) setRight(left); setLeft(a.id) }}
                   className="w-full px-3 py-2 rounded-xl text-left transition-all duration-150"
                   style={{
                     background: left === a.id ? a.colorDim : 'rgba(255,255,255,0.04)',
                     border: left === a.id ? `1px solid ${a.border}` : '1px solid rgba(255,255,255,0.07)',
-                    color: left === a.id ? a.color : a.id === right ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.55)',
-                    cursor: a.id === right ? 'not-allowed' : 'pointer',
-                    opacity: a.id === right ? 0.35 : 1,
+                    color: left === a.id ? a.color : 'rgba(255,255,255,0.55)',
+                    cursor: 'pointer',
                   }}>
                   <div className="text-[11px] font-bold">{a.sublabel}</div>
                   <div className="text-[9px] mt-0.5" style={{ opacity: 0.65 }}>{a.label}</div>
@@ -1134,14 +1134,14 @@ function SummaryPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
 // Wraps react-gauge-chart. To plug in real data, pass the live `value` and
 // `max` from your API response — the `percent` is computed here automatically.
 
-const GaugeChart = ({ value, max, label, unit, accentColor, description }: {
-  value: number   // current reading (e.g. 142 g/km) — replace with API value
-  max: number     // scale ceiling (e.g. 300) — adjust to match data range
+const GaugeChart = memo(function GaugeChart({ value, max, label, unit, accentColor, description }: {
+  value: number
+  max: number
   label: string
   unit: string
   accentColor: string
   description?: string
-}) => {
+}) {
   const percent = Math.min(1, Math.max(0, value / max))
 
   return (
@@ -1197,7 +1197,7 @@ const GaugeChart = ({ value, max, label, unit, accentColor, description }: {
       </div>
     </GlassCard>
   )
-}
+})
 
 // ─── Map Player ───────────────────────────────────────────────────────────────
 
