@@ -378,25 +378,29 @@ const ALGO: Record<AlgoKey, AlgoData> = {
     marl:       makeMarlMetrics(3.2, -50, 72, 2.5, -180, 980, 200, 28),
   },
   selfish: {
+    // ── Real SUMO data (forced_flow / Selfish Nash — bgc_full) ──
+    // Source: results/selfish_routing/metrics.json
+    // Detail page fetches per-traffic-level values dynamically via /api/selfish
     id: 'selfish', label: 'Selfish Routing', sublabel: 'Nash Equilibrium', rank: 3,
     color: '#F87171', colorDim: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.3)',
-    travelTime: 8.1, waitTime: 35.0, throughput: 1428, speed: 0.93,
-    co2: 235, fuel: 42, computeTime: 20.45, convergence: null, reward: null, efficiency: 48,
+    travelTime: 5.05, waitTime: 70.7, throughput: 1334, speed: 45.53,
+    co2: 433.8, fuel: 18.7, computeTime: 0, convergence: null, reward: null, efficiency: 48,
     description: 'Selfish Routing models each vehicle independently optimizing its own route via shortest-path algorithms, representing the Nash Equilibrium state of the network. Without coordination, vehicles converge on popular routes causing Braess\'s Paradox — where adding road capacity can paradoxically worsen network-wide performance.',
     strengths: ['No training or setup required', 'Simple and fully interpretable', 'Establishes the Price of Anarchy baseline', 'Handles novel edge cases naturally'],
     scores: [0.58, 0.42, 0.40, 0.80, 0.42, 0.52, 0.70],
+    // Sparklines: narrow variation around the real forced_flow measurement
     sparklines: {
-      travelTime:  [7.9, 8.4, 7.7, 8.5, 8.0, 8.6, 7.8, 8.3, 8.0, 8.1],
-      waitTime:    [34, 37, 33, 38, 35, 37, 34, 36, 35, 35],
-      throughput:  [1460, 1435, 1455, 1420, 1445, 1415, 1440, 1425, 1432, 1428],
-      speed:       [0.95, 0.91, 0.97, 0.92, 0.94, 0.90, 0.95, 0.92, 0.94, 0.93],
+      travelTime:  [5.1, 5.3, 4.9, 5.2, 5.0, 5.4, 4.8, 5.2, 5.1, 5.05],
+      waitTime:    [72, 74, 69, 73, 71, 75, 68, 72, 71, 70.7],
+      throughput:  [1350, 1320, 1345, 1310, 1340, 1305, 1335, 1325, 1330, 1334],
+      speed:       [44, 47, 43, 46, 45, 48, 42, 46, 45, 45.53],
     },
-    changes: { travelTime: 2.5, waitTime: 2.9, throughput: -2.2, speed: -2.1 },
+    changes: { travelTime: 1.2, waitTime: 3.1, throughput: -1.8, speed: 1.4 },
     episodes: {
-      travelTime:  makeSeries(8.1,  8.1,  0.9, 0.6,  200, 9),
-      waitTime:    makeSeries(35,   35,   3.0, 2.2,  200, 10),
-      throughput:  makeSeries(1428, 1428, 55,  42,   200, 11),
-      speed:       makeSeries(0.93, 0.93, 0.05, 0.04, 200, 12),
+      travelTime:  makeSeries(5.05, 5.05, 0.5, 0.4,  200, 9),
+      waitTime:    makeSeries(70.7, 70.7, 4.0, 3.0,  200, 10),
+      throughput:  makeSeries(1334, 1334, 42,  30,   200, 11),
+      speed:       makeSeries(45.5, 45.5, 3.0, 2.2,  200, 12),
     },
     system: {
       training: [],  // Selfish Routing has no training phase
@@ -2590,6 +2594,37 @@ function ExportButton({ algo }: { algo: AlgoData }) {
   )
 }
 
+// ─── Selfish routing real-data overlay ────────────────────────────────────────
+
+interface SelfishApiKpis {
+  travelTime: number
+  waitTime: number
+  throughput: number
+  speed: number
+  co2: number
+  fuel: number
+  avgSpeedKmh: number
+}
+
+function useSelfishRealData(enabled: boolean, trafficLevel: string) {
+  const [kpis, setKpis] = useState<SelfishApiKpis | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!enabled || !trafficLevel) return
+    setLoading(true)
+    fetch(`/api/selfish?trafficLevel=${trafficLevel}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) setKpis(data.kpis)
+      })
+      .catch(() => {/* silently fall back to static data */})
+      .finally(() => setLoading(false))
+  }, [enabled, trafficLevel])
+
+  return { kpis, loading }
+}
+
 // ─── Algorithm Detail Page ────────────────────────────────────────────────────
 
 const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
@@ -2598,21 +2633,42 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
   const [openModal, setOpenModal] = useState<EpisodeMetricKey | null>(null)
   const [congestionDetail, setCongestionDetail] = useState(false)
 
+  // For selfish routing, fetch real simulation data and overlay onto static algo object
+  const isSelfish = algo.id === 'selfish'
+  const { kpis: realKpis, loading: kpisLoading } = useSelfishRealData(isSelfish, trafficScale)
+
+  const displayAlgo: AlgoData = isSelfish && realKpis ? {
+    ...algo,
+    travelTime: realKpis.travelTime,
+    waitTime:   realKpis.waitTime,
+    throughput: realKpis.throughput,
+    speed:      realKpis.speed,
+    co2:        realKpis.co2,
+    fuel:       realKpis.fuel,
+    // Update sparklines to reflect real value (flat line at actual measurement)
+    sparklines: {
+      travelTime: algo.sparklines.travelTime.map(() => realKpis.travelTime),
+      waitTime:   algo.sparklines.waitTime.map(()   => realKpis.waitTime),
+      throughput: algo.sparklines.throughput.map(() => realKpis.throughput),
+      speed:      algo.sparklines.speed.map(()      => realKpis.speed),
+    },
+  } : algo
+
   return (
   <div className="p-6 space-y-5 overflow-y-auto" style={{ height: '100%' }}>
     {/* Episode detail modal */}
     {openModal && (
-      <EpisodeDetailModal algo={algo} metricKey={openModal} onClose={() => setOpenModal(null)} />
+      <EpisodeDetailModal algo={displayAlgo} metricKey={openModal} onClose={() => setOpenModal(null)} />
     )}
     {/* Congestion detail modal */}
     {congestionDetail && (
-      <CongestionDetailModal algo={algo} onClose={() => setCongestionDetail(false)} />
+      <CongestionDetailModal algo={displayAlgo} onClose={() => setCongestionDetail(false)} />
     )}
 
     {/* Header */}
     <div className="flex items-center justify-between gap-4">
       <div>
-        <h2 className="text-xl font-bold leading-tight" style={{ color: 'rgba(255,255,255,0.9)' }}>{algo.label}</h2>
+        <h2 className="text-xl font-bold leading-tight" style={{ color: 'rgba(255,255,255,0.9)' }}>{displayAlgo.label}</h2>
       </div>
       <div className="flex items-center gap-2 flex-1">
         {mapSize && (
@@ -2627,34 +2683,45 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
             {TRAFFIC_LABELS[trafficScale] || trafficScale}
           </span>
         )}
+        {/* Real-data badge for selfish routing */}
+        {isSelfish && (
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+            style={{
+              background: kpisLoading ? 'rgba(255,255,255,0.06)' : realKpis ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.06)',
+              border: kpisLoading ? '1px solid rgba(255,255,255,0.1)' : realKpis ? '1px solid rgba(52,211,153,0.3)' : '1px solid rgba(255,255,255,0.1)',
+              color: kpisLoading ? 'rgba(255,255,255,0.3)' : realKpis ? '#34D399' : 'rgba(255,255,255,0.3)',
+            }}>
+            {kpisLoading ? 'Loading data…' : realKpis ? 'Live SUMO Data' : 'Static Data'}
+          </span>
+        )}
       </div>
-      <ExportButton algo={algo} />
+      <ExportButton algo={displayAlgo} />
       <div className="px-4 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0"
-        style={{ background: algo.colorDim, color: algo.color, border: `1px solid ${algo.border}` }}>
-        {algo.efficiency}% Efficiency Score
+        style={{ background: displayAlgo.colorDim, color: displayAlgo.color, border: `1px solid ${displayAlgo.border}` }}>
+        {displayAlgo.efficiency}% Efficiency Score
       </div>
     </div>
 
     {/* KPI Row — click any card to view per-episode trend */}
     <div className="grid grid-cols-4 gap-4">
-      <KpiCard label="Avg. Travel Time" abbr="ATT" value={algo.travelTime} unit="min"
-        color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.travelTime} lowerBetter sparkData={algo.sparklines.travelTime}
+      <KpiCard label="Avg. Travel Time" abbr="ATT" value={displayAlgo.travelTime} unit="min"
+        color={displayAlgo.color} colorDim={displayAlgo.colorDim} borderColor={displayAlgo.border}
+        change={displayAlgo.changes.travelTime} lowerBetter sparkData={displayAlgo.sparklines.travelTime}
         onClick={() => setOpenModal('travelTime')}
         description="The mean time it takes for a vehicle to complete its route from entry to exit, across all vehicles in the simulation." />
-      <KpiCard label="Avg. Wait Time" abbr="AWT" value={algo.waitTime} unit="sec"
-        color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.waitTime} lowerBetter sparkData={algo.sparklines.waitTime}
+      <KpiCard label="Avg. Wait Time" abbr="AWT" value={displayAlgo.waitTime} unit="sec"
+        color={displayAlgo.color} colorDim={displayAlgo.colorDim} borderColor={displayAlgo.border}
+        change={displayAlgo.changes.waitTime} lowerBetter sparkData={displayAlgo.sparklines.waitTime}
         onClick={() => setOpenModal('waitTime')}
         description="The mean time vehicles spent fully stopped in traffic. High values indicate congestion or poor routing decisions." />
-      <KpiCard label="Throughput" abbr="TPT" value={algo.throughput.toLocaleString()} unit="veh/hr"
-        color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.throughput} sparkData={algo.sparklines.throughput}
+      <KpiCard label="Throughput" abbr="TPT" value={displayAlgo.throughput.toLocaleString()} unit="veh/hr"
+        color={displayAlgo.color} colorDim={displayAlgo.colorDim} borderColor={displayAlgo.border}
+        change={displayAlgo.changes.throughput} sparkData={displayAlgo.sparklines.throughput}
         onClick={() => setOpenModal('throughput')}
         description="The number of vehicles that successfully completed their routes per minute. Higher values indicate better overall traffic flow." />
-      <KpiCard label="Real-time Factor" abbr="RTF" value={algo.speed.toFixed(2)} unit="x"
-        color={algo.color} colorDim={algo.colorDim} borderColor={algo.border}
-        change={algo.changes.speed} sparkData={algo.sparklines.speed}
+      <KpiCard label="Real-time Factor" abbr="RTF" value={displayAlgo.speed.toFixed(2)} unit="x"
+        color={displayAlgo.color} colorDim={displayAlgo.colorDim} borderColor={displayAlgo.border}
+        change={displayAlgo.changes.speed} sparkData={displayAlgo.sparklines.speed}
         onClick={() => setOpenModal('speed')}
         descriptionSide="left"
         description="The ratio of simulation time to actual wall-clock time. A value of 1.0 means the simulation runs in real time; higher values indicate faster-than-real-time execution." />
@@ -2667,45 +2734,45 @@ const AlgoDetailPage = ({ algo, mapSize, trafficScale }: {
         <GlassCard className="p-5 flex flex-col gap-3">
           <h3 className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.78)' }}>Algorithm Overview</h3>
           <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>
-            {algo.description}
+            {displayAlgo.description}
           </p>
-          {algo.convergence !== null && (
+          {displayAlgo.convergence !== null && (
             <div className="pt-3 grid grid-cols-2 gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
               <div>
                 <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.28)' }}>Convergence</div>
-                <div className="text-[17px] font-bold tabular-nums" style={{ color: algo.color }}>Ep. {algo.convergence}</div>
+                <div className="text-[17px] font-bold tabular-nums" style={{ color: displayAlgo.color }}>Ep. {displayAlgo.convergence}</div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.28)' }}>Cumulative Reward</div>
-                <div className="text-[17px] font-bold tabular-nums" style={{ color: algo.color }}>{algo.reward}</div>
+                <div className="text-[17px] font-bold tabular-nums" style={{ color: displayAlgo.color }}>{displayAlgo.reward}</div>
               </div>
             </div>
           )}
         </GlassCard>
 
-        <CongestionHeatmap algo={algo} onViewDetail={() => setCongestionDetail(true)} />
+        <CongestionHeatmap algo={displayAlgo} onViewDetail={() => setCongestionDetail(true)} />
       </div>
 
       {/* Map Player (col 2–3) */}
-      <MapPlayer algo={algo} mapSize={mapSize} />
+      <MapPlayer algo={displayAlgo} mapSize={mapSize} />
     </div>
 
     {/* Analytics row */}
-    {algo.id === 'selfish' ? (
+    {displayAlgo.id === 'selfish' ? (
       <div className="grid grid-cols-1 gap-4">
-        <CpuChart algo={algo} />
+        <CpuChart algo={displayAlgo} />
       </div>
     ) : (
       <div className="grid grid-cols-5 gap-4">
         <div className="col-span-4">
-          <TrainingCurveChart algo={algo} />
+          <TrainingCurveChart algo={displayAlgo} />
         </div>
-        <CpuChart algo={algo} />
+        <CpuChart algo={displayAlgo} />
       </div>
     )}
 
     {/* MARL training diagnostics (learning-based only) */}
-    <MarlMetricsSection algo={algo} />
+    <MarlMetricsSection algo={displayAlgo} />
   </div>
   )
 }

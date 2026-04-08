@@ -7,7 +7,12 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(cmd /c \"cd \\\\\"C:\\\\Users\\\\Angel Letada\\\\Documents\\\\3Y2T\\\\Thesis\\\\apriori_civiq\\\\frontend\\\\\" && npx tsc --noEmit 2>&1\")",
       "Bash(cmd /c \"cd \\\\\"C:\\\\Users\\\\Angel Letada\\\\Documents\\\\3Y2T\\\\Thesis\\\\apriori_civiq\\\\frontend\\\\\" && npx tsc --noEmit\")",
-      "Bash(cmd /c \"cd /d \\\\\"C:\\\\Users\\\\Angel Letada\\\\Documents\\\\3Y2T\\\\Thesis\\\\apriori_civiq\\\\frontend\\\\\" && npx tsc --noEmit && echo TSC_OK\")"
+      "Bash(cmd /c \"cd /d \\\\\"C:\\\\Users\\\\Angel Letada\\\\Documents\\\\3Y2T\\\\Thesis\\\\apriori_civiq\\\\frontend\\\\\" && npx tsc --noEmit && echo TSC_OK\")",
+      "Bash(python scripts/compile_selfish_results.py)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('scripts',{}\\)\\)\")",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(wc -l \"c:/Users/Angel Letada/Documents/3Y2T/Thesis/apriori_civiq/results/selfish_routing/\"*.csv)"
     ]
   }
 }
